@@ -312,6 +312,18 @@ Every box is reachable by keyboard, and Escape closes the drawer.
 
 ---
 
+## AI Architecture Assistant
+
+The **Ask AI** button (bottom-right corner) lets you describe a customer or use case in plain language and get a tailored view of the platform — without restructuring the diagram.
+
+- **Describe a customer → generated tab.** Type a use case (e.g. "a regional bank building a fraud detection platform") and the assistant generates a new, editable tab containing only the components that fit, each annotated with a short note on how it applies. The tab is persisted and editable like any other.
+- **Industry auto-detection is a two-phase call.** The assistant first detects the industry from your text; if it matches one of the sixty-three built industries, it re-grounds the component selection on that industry's own board before building the tab — so the result reflects the right sources, teams and use cases, not the generic reference.
+- **Type-ahead suggestion chips.** As you type, matching industry names surface above the input. Picking one switches the Reference board to that industry immediately — no AI call needed.
+- **Usage notes on every component.** Each component in the generated tab carries a per-component note explaining how it applies to your use case; the same note appears on hover and in the detail drawer.
+- **FastAPI backend, Databricks-hosted model.** The `/generate` endpoint in `app/app.py` calls `databricks-claude-sonnet-5` through the Databricks Foundation Model API using the app's own OAuth identity — no API key is needed when deployed. Locally, you can paste an Anthropic API key into the chat input as a fallback. Install Python dependencies with `pip install -r app/requirements.txt` before running locally.
+
+---
+
 ## Tabs
 
 The **Reference Architecture** tab is pinned and cannot be closed. **Edit**
@@ -390,7 +402,7 @@ If you would rather not run a notebook:
 ```bash
 # 1. put the app files in the workspace
 databricks workspace mkdirs "/Users/$USER/idea/app"
-for f in index.html main.py app.yaml; do
+for f in index.html app.py app.yaml requirements.txt; do
   databricks workspace import "/Users/$USER/idea/app/$f" --file "app/$f" \
     --format AUTO --overwrite
 done
@@ -407,7 +419,7 @@ Redeploying after a change is the same two steps without `apps create`.
 `app/index.html` is self-contained. Double-click it, or serve the folder:
 
 ```bash
-cd app && python3 main.py     # http://localhost:8000
+cd app && pip install -r requirements.txt && python3 app.py     # http://localhost:8000
 ```
 
 ---
@@ -418,7 +430,9 @@ cd app && python3 main.py     # http://localhost:8000
 app-installer.ipynb        Databricks App installer, Run All
 app/
   index.html               the whole diagram: markup, styles, logic, model, logos
-  main.py                  static server for Databricks Apps, standard library only
+  app.py                   FastAPI backend; serves index.html and /generate (AI assistant)
+  main.py                  static server, no longer used as the entry point
+  requirements.txt         Python dependencies for app.py
   app.yaml                 Databricks App entry point
 docs/                      the screenshots and the animated export used above
 tools/
