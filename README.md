@@ -419,7 +419,7 @@ Redeploying after a change is the same two steps without `apps create`.
 `app/index.html` is self-contained. Double-click it, or serve the folder:
 
 ```bash
-cd app && pip install -r requirements.txt && python3 app.py     # http://localhost:8000
+cd app && pip install -r requirements.txt && uvicorn app:app --port 8000     # http://localhost:8000
 ```
 
 ---
