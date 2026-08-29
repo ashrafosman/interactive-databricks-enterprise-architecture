@@ -13148,49 +13148,47 @@ function prioritiseUseCases(secs){
       .map(x=> x[0]);
   });
 }
-function applyIndustry(id, remember){
+/* Pure transform: rebuild `fields` (a board's {bands,rails,top,cloud}) from BASE
+   and lay industry `id` over it. Operates only on the object handed in — used both
+   by applyIndustry (on the live ARCH) and by industryArch (on an off-board clone).
+   Uses a LOCAL findStages over fields.bands, never the global medallionStages()
+   which reads the live board. */
+function applyIndustryTo(fields, id){
   const ind = INDUSTRIES[id];
   const fresh = JSON.parse(JSON.stringify(BASE));
-  ARCH.rails = fresh.rails;
-  ARCH.top   = fresh.top;
-  /* Only the medallion stages are restored from BASE, not the whole bands tree:
-     the bands carry the platform itself, and a user's own edits to it should
-     survive an industry switch because the platform is not what changes. */
-  const stages = medallionStages(), baseStages = (function(){
-    for(const band of fresh.bands){
+  fields.rails = fresh.rails;
+  fields.top   = fresh.top;
+  const findStages = tree => {
+    for(const band of (tree || [])){
       for(const row of (band.rows || [])){
         if(row.kind === "medallion" && Array.isArray(row.stages)) return row.stages;
       }
     }
     return null;
-  })();
+  };
+  const stages = findStages(fields.bands), baseStages = findStages(fresh.bands);
   if(stages && baseStages){
-    stages.forEach((st, i)=>{
-      const b = baseStages[i];
-      if(b){ st.s = b.s; st.long = b.long; }
-    });
+    stages.forEach((st, i)=>{ const b = baseStages[i]; if(b){ st.s = b.s; st.long = b.long; } });
   }
-
-  ARCH.industry = ind ? id : "generic";
-
   if(ind){
     if(ind.rails){
       RAIL_IDS.forEach(rid=>{
-        if(Array.isArray(ind.rails[rid])) ARCH.rails[rid].groups = JSON.parse(JSON.stringify(ind.rails[rid]));
+        if(Array.isArray(ind.rails[rid])) fields.rails[rid].groups = JSON.parse(JSON.stringify(ind.rails[rid]));
       });
     }
     if(Array.isArray(ind.top)){
-      ARCH.top.secs = JSON.parse(JSON.stringify(ind.top));
-      prioritiseUseCases(ARCH.top.secs);
+      fields.top.secs = JSON.parse(JSON.stringify(ind.top));
+      prioritiseUseCases(fields.top.secs);
     }
-    if(ind.blurb) ARCH.top.sub = ind.blurb;
+    if(ind.blurb) fields.top.sub = ind.blurb;
     if(ind.medallion && stages){
-      stages.forEach(st=>{
-        const o = ind.medallion[st.n];
-        if(o){ if(o.s) st.s = o.s; if(o.long) st.long = o.long; }
-      });
+      stages.forEach(st=>{ const o = ind.medallion[st.n]; if(o){ if(o.s) st.s = o.s; if(o.long) st.long = o.long; } });
     }
   }
+}
+function applyIndustry(id, remember){
+  applyIndustryTo(ARCH, id);
+  ARCH.industry = INDUSTRIES[id] ? id : "generic";
 
   /* A solution overlay is keyed by the generic board's tile names, so against an
      industry board roughly half of them resolve and paintRef silently skips the
@@ -14543,6 +14541,10 @@ function clearRefPaint(){
 }
 function paintRef(ref){
   clearRefPaint();
+  /* A generated AI tab's board IS the solution — there is nothing to dim it
+     against — so a __tab__ overlay carries usage notes for the drawer/tooltip
+     without adding body.ref-mode (which greys non-mapped atoms). */
+  if(ref.id === "__tab__") return;
   document.body.classList.add("ref-mode");
   Object.entries(ref.map).forEach(([name, items])=>{
     const id = resolveAtom(name); if(!id) return;
@@ -17774,6 +17776,402 @@ if(!seedFromUrl()){
 }
 fitBoard();
 restoreActiveTab();
+
+/* ==================================================================
+   10. AI ARCHITECTURE ASSISTANT
+   Describe a customer / use case and the model builds a tailored
+   architecture as a new tab, driving the fork's own board model
+   (boardSnapshot / refSnap / makeTab / selectTab). Two-phase: phase-1
+   detects the industry on the generic catalog; if an industry is
+   detected, phase-2 re-grounds selection on that industry's own board.
+   Connection order: local bridge (/health) -> direct Anthropic API
+   with an in-memory key -> error.
+   ================================================================== */
+const AI_MODEL = "claude-sonnet-5";
+let aiApiKey = "";                       // in memory only; never persisted, cleared on reload
+const aiState = { busy:false, bridge:false, history:[] };
+
+/* Real, highlightable component names grouped by the section each atom was
+   registered under during build(). Built from byId (post-build) so it always
+   matches the live board — including the current cloud provider's tiles. */
+function componentCatalog(){
+  const bySection = new Map();
+  const seen = new Set();
+  Object.values(byId).forEach(rec=>{
+    const name = rec.tile && rec.tile.n; if(!name) return;
+    const key = rec.section || "Platform";
+    if(!bySection.has(key)) bySection.set(key, []);
+    const tag = key + " " + name;
+    if(seen.has(tag)) return; seen.add(tag);
+    bySection.get(key).push(name);
+  });
+  return [...bySection.entries()].map(([sec, names])=> `  ${sec}: ${names.join(" | ")}`).join("\n");
+}
+
+/* Component catalog built from an arbitrary arch object (e.g. an industry board),
+   not the live byId. Groups atom names by section so the model can ground on a
+   board it is NOT currently viewing (industry detection re-grounds on the
+   industry's own board). */
+function catalogFromArch(arch){
+  const lines = [];
+  const names = node => { const out = []; (function walk(n){
+    if(Array.isArray(n)) n.forEach(walk);
+    else if(n && typeof n === "object"){
+      if(typeof n.n === "string") out.push(n.n);
+      Object.keys(n).forEach(k=>{ if(k!=="n") walk(n[k]); });
+    }
+  })(node); return [...new Set(out)]; };
+  (arch.bands||[]).forEach(b=>{ const ns = names(b.rows); if(ns.length) lines.push(`  ${b.name||b.id}: ${ns.join(" | ")}`); });
+  ["src","ing","ppl","cons"].forEach(rid=>{ const rail = arch.rails && arch.rails[rid]; if(!rail) return;
+    const ns = names(rail.groups); if(ns.length) lines.push(`  ${rail.name||rid}: ${ns.join(" | ")}`); });
+  if(arch.top && Array.isArray(arch.top.secs)){ const ns = names(arch.top.secs); if(ns.length) lines.push(`  Apps & Use Cases: ${ns.join(" | ")}`); }
+  if(arch.cloud){ const ns = names([arch.cloud.extras, arch.cloud.providers]); if(ns.length) lines.push(`  Cloud Services & Integrations: ${ns.join(" | ")}`); }
+  return lines.join("\n");
+}
+
+/* The set of names (and cloud:<role> handles) an arch actually contains, for
+   validating AI component picks against a board other than the live one. */
+function archAtomSet(arch){
+  const set = new Set();
+  (function walk(n){
+    if(Array.isArray(n)) n.forEach(walk);
+    else if(n && typeof n === "object"){
+      if(typeof n.n === "string") set.add(n.n);
+      if(typeof n.role === "string") set.add("cloud:" + n.role);
+      Object.keys(n).forEach(k=> walk(n[k]));
+    }
+  })({ bands:arch.bands, rails:arch.rails, top:arch.top, cloud:arch.cloud });
+  return set;
+}
+
+/* An industry's board built off to the side — never touches the live ARCH or the
+   reference tab. Clones the reference board's snapshot (refSnap, or the live board
+   if nothing parked yet), lays the industry over it, tags it. */
+function industryArch(id){
+  const src = refSnap || boardSnapshot();
+  const clone = JSON.parse(JSON.stringify({ bands:src.bands, rails:src.rails, top:src.top, cloud:src.cloud }));
+  applyIndustryTo(clone, id);
+  clone.industry = id;
+  return clone;
+}
+
+/* Keep only selected atoms. Generic: any array whose elements look like atoms
+   (have a string `n`) is filtered to the selected set; other arrays/objects are
+   recursed; a container left with no atoms is pruned. Cloud role handles
+   (cloud:<role>) let a selected tile survive when addressed by role. The source
+   is the passed base (an industry board), else the parked reference snapshot,
+   else the live board — never a CANON global. */
+function filterArch(selected, base){
+  const src = base || refSnap || boardSnapshot();
+  const clone = JSON.parse(JSON.stringify({ bands:src.bands, rails:src.rails, top:src.top, cloud:src.cloud }));
+  const keepTile = t => t && typeof t.n === "string" &&
+    (selected.has(t.n) || (t.role && selected.has("cloud:" + t.role)));
+  const isAtomArray = arr => Array.isArray(arr) && arr.some(x => x && typeof x === "object" && typeof x.n === "string");
+  const walk = node => {
+    let kept = false;
+    if(Array.isArray(node)){
+      if(isAtomArray(node)){
+        for(let i = node.length - 1; i >= 0; i--){
+          if(node[i] && typeof node[i].n === "string"){
+            if(keepTile(node[i])) kept = true; else node.splice(i, 1);
+          } else if(walk(node[i])) kept = true;
+        }
+      } else {
+        for(let i = node.length - 1; i >= 0; i--){ if(walk(node[i])) kept = true; }
+      }
+    } else if(node && typeof node === "object"){
+      for(const k of Object.keys(node)){ if(walk(node[k])) kept = true; }
+    }
+    return kept;
+  };
+  walk(clone.bands);
+  clone.bands = clone.bands.filter(b => walk(b.rows));
+  ["src","ing","ppl","cons"].forEach(rid => {
+    const rail = clone.rails[rid]; if(!rail) return;
+    rail.groups = (rail.groups || []).filter(g => walk(g));
+  });
+  if(clone.top && Array.isArray(clone.top.secs)) clone.top.secs = clone.top.secs.filter(s => walk(s));
+  return { schema:SCHEMA, industry:(src.industry || "generic"), bands:clone.bands, rails:clone.rails, top:clone.top, cloud:clone.cloud };
+}
+
+/* The industry ids the model may pick from — only those actually built. */
+function industryPromptList(){
+  return INDUSTRY_CATALOG
+    .filter(([id]) => INDUSTRIES[id])
+    .map(([id, label]) => `  ${id} — ${label}`)
+    .join("\n");
+}
+
+function aiSystemPrompt(catalogText){
+  const cat = catalogText || componentCatalog();
+  return `You are a Databricks solutions architect helping a colleague tailor a Databricks Data Intelligence Platform reference architecture to a customer's needs.
+
+You are given a fixed catalog of architecture COMPONENTS (below), organized by section. The sections span the whole board: the platform bands, the Apps & Use Cases band, the Sources / Cloud & 3rd-Party Ingestion / People / Consumers boxes, and the Cloud Services & Integrations band. Your job: from the user's description of a customer / use case / data, decide which components across ALL sections are relevant, and explain briefly how each is used for THIS solution. You do not invent products or rename anything — you may only reference the exact names given.
+
+COMPONENTS (grouped by section):
+${cat}
+
+INDUSTRIES (pick the single best-matching id for the customer, or "" if none clearly applies):
+${industryPromptList()}
+
+Respond with ONLY a single JSON object (no prose, no markdown fences), shaped exactly:
+{
+  "reply": "1-3 sentence conversational message to the user about what you highlighted or answering their question",
+  "title": "<Customer or use-case> — <short solution name>",
+  "blurb": "one sentence describing the solution flow",
+  "industry": "<one industry id from the list above, or empty string if none clearly fits>",
+  "components": [
+    { "name": "<EXACT component name from the catalog>", "notes": ["short phrase on how it is used here", "optional 2nd phrase"] }
+  ]
+}
+
+RULES:
+- Use ONLY exact names from the catalog. Drop anything that doesn't match a listed name.
+- Include the relevant Sources / ingestion / People / Consumers / Cloud Services components that surround this use case — not just the platform bands.
+- Pick the components that genuinely matter (typically 8-18 across all sections) — do not select everything.
+- Each component gets 1-2 concise usage notes specific to this customer/use case.
+- For a follow-up that refines the current solution, return the FULL updated component set (not just the delta).
+- If the user only asks a question and no change is needed, return "components": [] and keep "reply" helpful.
+- Set "industry" to the ONE id that best fits the customer's sector; use "" (empty) if the description is generic or spans many. Never invent an id.
+- Return ONLY the JSON object.`;
+}
+function aiExtractJson(text){
+  let t = String(text).trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(fence) t = fence[1].trim();
+  if(t[0] !== "{"){ const a=t.indexOf("{"), b=t.lastIndexOf("}"); if(a>=0&&b>a) t=t.slice(a,b+1); }
+  return JSON.parse(t);
+}
+
+async function aiBridgeHealthy(){
+  try{ const r = await fetch("/health"); if(!r.ok) return false; const d = await r.json(); return !!d.ok; }
+  catch(_){ return false; }
+}
+async function aiCallBridge(system, user){
+  const r = await fetch("/generate", { method:"POST", headers:{"content-type":"application/json"},
+    body: JSON.stringify({ model:AI_MODEL, system, user }) });
+  if(!r.ok){ let m=r.status+" "+r.statusText; try{const e=await r.json(); if(e.error)m=e.error;}catch(_){} throw new Error(m); }
+  return (await r.json()).text || "";
+}
+async function aiCallApi(key, system, user){
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{ "content-type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true" },
+    body: JSON.stringify({ model:AI_MODEL, max_tokens:4000, system, messages:user })
+  });
+  if(!r.ok){ let m=r.status+" "+r.statusText; try{const e=await r.json(); if(e.error?.message)m=e.error.message;}catch(_){} throw new Error(m); }
+  const d = await r.json();
+  if(d.stop_reason==="refusal") throw new Error("Request declined by the safety system.");
+  return (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+}
+
+/* Build a subset board from the AI result and open it as a new, editable,
+   persisted tab, using the fork's tab model (makeTab(id,name,text,snap) +
+   selectTab). Returns {count,title,industry}; count 0 means nothing resolved. */
+function aiCreateTab(r, baseArch){
+  const validSet = baseArch ? archAtomSet(baseArch) : null;
+  const ok = name => validSet ? validSet.has(name) : !!resolveAtom(name);
+  const selected = new Set();
+  const notes = {};
+  (r.components || []).forEach(c => {
+    if(c && c.name && ok(c.name)){
+      selected.add(c.name);
+      const ns = Array.isArray(c.notes) ? c.notes.filter(Boolean) : (c.notes ? [String(c.notes)] : []);
+      notes[c.name] = ns.length ? ns : ["Used in this solution."];
+    }
+  });
+  const count = selected.size;
+  if(!count) return { count:0, title:"" };
+  const snap = filterArch(selected, baseArch || null);
+  const title = r.title || "AI Architecture";
+  const blurb = r.blurb || "";
+  const industry = baseArch ? baseArch.industry : null;
+  const id = "custom" + (++tabSeq);
+  // clear any reference-board highlight — the result now lives in its own tab
+  if(activeRef){ clearReference(); refBanner.classList.remove("show"); }
+  const tab = makeTab(id, title, "", snap);
+  selectTab(tab);            // parks current board, loads snap, rebuilds
+  persistTabs();
+  // Usage-notes overlay AFTER selectTab so rebuildBoard's paintRef doesn't run
+  // against it; the __tab__ guard in paintRef keeps the board undimmed.
+  if(Object.keys(notes).length){
+    activeRef = { id:"__tab__", name:title, blurb, map:notes };
+    document.getElementById("ref-name").textContent = title;
+    document.getElementById("ref-blurb").textContent = blurb;
+    refBanner.classList.add("show");
+  }
+  return { count, title, industry };
+}
+
+/* ----- chat UI ----- */
+const aiEls = {
+  fab: document.getElementById("ai-fab"), panel: document.getElementById("ai-panel"),
+  msgs: document.getElementById("ai-msgs"), text: document.getElementById("ai-text"),
+  send: document.getElementById("ai-send"), dot: document.getElementById("ai-dot"),
+  conn: document.getElementById("ai-conn-txt"), sugg: document.getElementById("ai-sugg"),
+};
+function aiAddMsg(role, text, applied){
+  const d = document.createElement("div");
+  d.className = "ai-msg " + role;
+  d.textContent = text;
+  if(applied && applied.count){ const a=document.createElement("div"); a.className="applied";
+    a.textContent = `✦ Created tab "${applied.title}" with ${applied.count} component${applied.count>1?"s":""}${applied.industry ? " (" + industryLabel(applied.industry) + ")" : ""}.`; d.appendChild(a); }
+  else if(applied){ const a=document.createElement("div"); a.className="applied";
+    a.textContent = `✦ Applied ${applied} components.`; d.appendChild(a); }
+  aiEls.msgs.appendChild(d);
+  aiEls.msgs.scrollTop = aiEls.msgs.scrollHeight;
+  return d;
+}
+function aiSetBusy(b){
+  aiState.busy = b;
+  aiEls.send.disabled = b;
+  aiEls.dot.className = "ai-dot " + (b ? "busy" : (aiState.bridge ? "on" : ""));
+}
+async function aiRefreshConn(){
+  aiState.bridge = await aiBridgeHealthy();
+  aiEls.dot.className = "ai-dot " + (aiState.bridge ? "on" : "");
+  aiEls.conn.textContent = aiState.bridge ? "model connected" :
+    (aiApiKey ? "using API key (this session)" : "offline — add API key or start the backend");
+}
+async function aiSend(promptText){
+  const input = (promptText || aiEls.text.value).trim();
+  if(!input || aiState.busy) return;
+  aiEls.text.value = ""; aiEls.text.style.height = "auto";
+  aiEls.sugg.style.display = "none";
+  aiIndHint("");   // clear any industry hint once a prompt is sent
+  aiAddMsg("user", input);
+  aiState.history.push({ role:"user", content:input });
+  aiSetBusy(true);
+  const thinking = aiAddMsg("bot", "Thinking…");
+  const convo = aiState.history.map(m=>`${m.role==="user"?"USER":"ASSISTANT"}: ${m.content}`).join("\n\n");
+  try{
+    const system = aiSystemPrompt();
+    let raw;
+    if(aiState.bridge){
+      raw = await aiCallBridge(system, convo);
+    } else {
+      const key = aiApiKey.trim();
+      if(!key) throw new Error("No connection. Run the backend (uvicorn app:app) or add an Anthropic API key below.");
+      raw = await aiCallApi(key, system, aiState.history.map(m=>({role:m.role, content:m.content})));
+    }
+    const result = aiExtractJson(raw);
+    // Industry detected → re-ground selection on THAT industry's board, so the
+    // model can pick the industry's own rail/top/apps components (the generic
+    // catalog never listed them). Generic → single call, base stays null.
+    let baseArch = null;
+    const indId = (result.industry && INDUSTRIES[result.industry]) ? result.industry : null;
+    if(indId){
+      baseArch = industryArch(indId);
+      const sys2 = aiSystemPrompt(catalogFromArch(baseArch));
+      let raw2;
+      if(aiState.bridge){
+        raw2 = await aiCallBridge(sys2, convo);
+      } else {
+        raw2 = await aiCallApi(aiApiKey.trim(), sys2, aiState.history.map(m=>({role:m.role, content:m.content})));
+      }
+      const r2 = aiExtractJson(raw2);
+      if(Array.isArray(r2.components) && r2.components.length) result.components = r2.components;
+    }
+    const made = aiCreateTab(result, baseArch);
+    thinking.remove();
+    aiAddMsg("bot", result.reply || (made.count?`Built ${made.count} components.`:"Done."), made.count ? { count:made.count, title:made.title, industry:made.industry } : 0);
+    aiState.history.push({ role:"assistant", content: result.reply || "(applied)" });
+  }catch(err){
+    thinking.remove();
+    const m = aiAddMsg("bot", "⚠ "+err.message); m.className="ai-msg err";
+  }finally{ aiSetBusy(false); }
+}
+
+aiEls.fab.onclick = ()=>{ aiEls.panel.classList.add("show"); aiEls.fab.classList.add("hide");
+  aiRefreshConn(); aiEls.text.focus();
+  if(!aiEls.msgs.children.length) aiAddMsg("bot", "Describe a customer and use case, and I'll build a tailored architecture as a new tab. e.g. \"Real-time fraud detection for a retail bank streaming card transactions.\""); };
+document.getElementById("ai-x").onclick = ()=>{ aiEls.panel.classList.remove("show"); aiEls.fab.classList.remove("hide"); };
+aiEls.send.onclick = ()=> aiSend();
+aiEls.text.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); aiSend(); } });
+aiEls.text.addEventListener("input", ()=>{ aiEls.text.style.height="auto"; aiEls.text.style.height=Math.min(aiEls.text.scrollHeight,120)+"px"; aiIndHint(aiEls.text.value); });
+aiEls.sugg.querySelectorAll("button").forEach(b=> b.onclick = ()=> aiSend(b.dataset.q));
+
+/* As the user types, surface built-in industries whose name matches the text.
+   Picking one switches the Reference board straight to that industry (same path
+   as the header Industry menu) — no AI call, no generated tab. Local match only. */
+const aiIndHintEl = document.getElementById("ai-indhint");
+const IND_SYNONYMS = {
+  banking:["bank","banks","fintech finance","financial"], payments_fintech:["fintech","payments","payment"],
+  healthcare:["hospital","health system","provider","clinic","patient"], health_insurance:["payer","health plan"],
+  life_insurance:["insurer","insurance"], telecommunication:["telecom","telco","carrier","mobile operator"],
+  retail:["retailer","store","shop"], ecommerce:["e-commerce","online store","webshop"],
+  manufacturing:["factory","plant","industrial"], oil_gas:["oil","gas","petroleum","upstream"],
+  energy_utilities:["utility","utilities","power","grid"], media_broadcasting:["media","broadcaster","streaming"],
+  travel_hospitality:["hotel","hospitality","travel"], transport_shipping:["logistics","freight","transport"],
+  automotive:["auto","car","vehicle","oem"], pharmaceuticals:["pharma","drug"],
+  gaming:["games","game studio","igaming"], grocery:["supermarket","grocer"], restaurants:["restaurant","qsr","food service"],
+};
+const IND_STOP = new Set(["real","life","media","gas","oil","food","water","waste","health","goods","apparel","sports","chemical"]);
+function aiIndustryMatches(text){
+  const q = String(text||"").toLowerCase().trim();
+  if(q.length < 3) return [];
+  const scored = [];
+  INDUSTRY_CATALOG.forEach(([id,label])=>{
+    if(!INDUSTRIES[id]) return;                 // only built industries
+    const lc = label.toLowerCase();
+    const words = lc.split(/[^a-z]+/).filter(Boolean);
+    const strong = [lc, ...(IND_SYNONYMS[id]||[])];
+    const weak = words.filter(w=> w.length >= 4 && !IND_STOP.has(w));
+    let best = 0;
+    const wb = t => new RegExp("\\b"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(q);
+    strong.forEach(t=>{
+      if(!t) return;
+      if(q === t) best = Math.max(best, 100);
+      else if(wb(t)) best = Math.max(best, 85);
+      else if(t.length >= 5 && q.includes(t)) best = Math.max(best, 60);
+    });
+    weak.forEach(t=>{ if(wb(t)) best = Math.max(best, 70); });
+    if(best) scored.push({ id, label, score:best });
+  });
+  return scored.sort((a,b)=> b.score - a.score).slice(0,3);
+}
+function aiIndHint(text){
+  const matches = aiIndustryMatches(text);
+  aiIndHintEl.innerHTML = "";
+  if(!matches.length){ aiIndHintEl.hidden = true; return; }
+  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = "Use standard industry:";
+  aiIndHintEl.appendChild(lbl);
+  matches.forEach(m=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = `${esc(m.label)} <span class="arr">→</span>`;
+    b.title = `Switch the Reference board to the ${m.label} architecture`;
+    b.onclick = ()=>{
+      // Always target the Reference board: if a generated tab is active, switch to
+      // Reference first so applyIndustry mutates the reference board, not the tab.
+      const refTab = tabsEl.querySelector('.tab[data-tab="reference"]');
+      const active = tabsEl.querySelector(".tab.active");
+      if(refTab && active !== refTab) selectTab(refTab);
+      applyIndustry(m.id, true);                // switch Reference board, persist
+      aiIndHintEl.hidden = true; aiIndHintEl.innerHTML = "";
+      aiAddMsg("bot", `Switched the Reference board to the ${m.label} standard architecture.`);
+    };
+    aiIndHintEl.appendChild(b);
+  });
+  aiIndHintEl.hidden = false;
+}
+document.getElementById("ai-clear").onclick = ()=>{
+  const activeTab = tabsEl.querySelector(".tab.active");
+  const activeId = activeTab && activeTab.dataset.tab;
+  const activeCustom = activeId && customTabs.get(activeId);
+  if(activeCustom && activeCustom.snap){
+    closeTab(activeTab);
+    aiAddMsg("bot","Closed the generated tab — back to the full platform.");
+  } else {
+    clearReference(); refBanner.classList.remove("show");
+    aiAddMsg("bot","Cleared the highlight — the full platform is shown again.");
+  }
+};
+document.getElementById("ai-key-toggle").onclick = ()=> document.getElementById("ai-key-row").classList.toggle("show");
+(function(){ const k=document.getElementById("ai-key");
+  k.addEventListener("input", e=>{ aiApiKey = e.target.value.trim(); aiRefreshConn(); }); })();
+aiRefreshConn();
 </script>
 
 
