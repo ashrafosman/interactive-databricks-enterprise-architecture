@@ -2,3 +2,6 @@ __pycache__/
 tools/.markcache/
 node_modules/
 package-lock.json
+
+# Superpowers SDD scratch
+.superpowers/
