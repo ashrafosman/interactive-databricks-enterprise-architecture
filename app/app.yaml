@@ -1,3 +1,17 @@
 command:
-  - "python"
-  - "main.py"
+  - "uvicorn"
+  - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  # Databricks-hosted Claude Foundation Model the assistant calls. Confirm the
+  # exact endpoint name against the workspace's Serving page and adjust if needed.
+  - name: SERVING_ENDPOINT
+    value: "databricks-claude-sonnet-5"
+  # Optional: route through AI Gateway so usage counters / inference tables
+  # register. Leave unset to use the serving-endpoints path directly.
+  # - name: AI_GATEWAY_URL
+  #   value: "https://<workspace-id>.ai-gateway.cloud.databricks.com/mlflow/v1"
