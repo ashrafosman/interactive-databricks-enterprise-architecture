@@ -2465,7 +2465,8 @@
   <div class="ai-foot">
     <span id="ai-model-lbl">Claude Sonnet 5</span>
     <a id="ai-key-toggle">API key</a>
-    <a id="ai-clear" style="margin-left:auto">Clear highlight</a>
+    <a id="ai-edit-toggle" hidden style="margin-left:auto">✎ Editing: on</a>
+    <a id="ai-clear">Clear highlight</a>
   </div>
   <div class="ai-indhint" id="ai-indhint" hidden></div>
   <div class="ai-input">
@@ -14634,6 +14635,12 @@ function selectTab(tab){
   const custom = customTabs.get(id);
   const isBuilder = !!custom && !custom.snap;   /* legacy text-only tab */
   const isBoard = (id === "reference") || (custom && !!custom.snap);
+  /* Edit mode is a per-tab property, scoped to boards that opted in (generated
+     tabs). Sync the global editMode to the tab BEFORE rebuild so the board
+     renders with the right click routing (openEdit vs openDetail) and ✎ badge;
+     leaving such a tab turns edit mode back off. */
+  editMode = !!(custom && custom.edit);
+  document.body.classList.toggle("edit-mode", editMode);
   if(isBoard && id !== activeBoard){ parkActiveBoard(); loadTabBoard(id); rebuildBoard(); }
   tabsEl.querySelectorAll(".tab").forEach(t=> t.classList.remove("active"));
   tab.classList.add("active");
@@ -14803,6 +14810,8 @@ let restoredActive = null;
     if(!t || typeof t.id !== "string" || !/^custom\d+$/.test(t.id)) return;
     makeTab(t.id, String(t.name || "Custom Architecture"), String(t.text || ""),
       (t.snap && typeof t.snap === "object") ? t.snap : null);
+    /* preserve the per-tab editable flag across reload (makeTab resets the record) */
+    const rec = customTabs.get(t.id); if(rec && t.edit) rec.edit = true;
     /* keep the counter ahead of every restored id so + cannot collide */
     tabSeq = Math.max(tabSeq, parseInt(t.id.slice(6), 10) || 0);
   });
@@ -17991,7 +18000,8 @@ function aiCreateTab(r, baseArch){
   // clear any reference-board highlight — the result now lives in its own tab
   if(activeRef){ clearReference(); refBanner.classList.remove("show"); }
   const tab = makeTab(id, title, "", snap);
-  selectTab(tab);            // parks current board, loads snap, rebuilds
+  const rec = customTabs.get(id); if(rec) rec.edit = true;  // generated tabs open editable
+  selectTab(tab);            // parks current board, loads snap, rebuilds (and enters edit mode)
   persistTabs();
   // Usage-notes overlay AFTER selectTab so rebuildBoard's paintRef doesn't run
   // against it; the __tab__ guard in paintRef keeps the board undimmed.
@@ -18171,6 +18181,32 @@ document.getElementById("ai-clear").onclick = ()=>{
 document.getElementById("ai-key-toggle").onclick = ()=> document.getElementById("ai-key-row").classList.toggle("show");
 (function(){ const k=document.getElementById("ai-key");
   k.addEventListener("input", e=>{ aiApiKey = e.target.value.trim(); aiRefreshConn(); }); })();
+
+/* Editing toggle: visible only on a generated (editable) tab. Reflects and flips
+   that tab's `edit` flag; blocks are click-to-edit while it is on. */
+const aiEditToggleEl = document.getElementById("ai-edit-toggle");
+function activeGeneratedRec(){
+  const act = activeTabEl();
+  const rec = act && customTabs.get(act.dataset.tab);
+  return (rec && rec.snap) ? rec : null;   // a generated/clone board, not reference
+}
+function syncEditToggle(){
+  const rec = activeGeneratedRec();
+  if(!rec){ aiEditToggleEl.hidden = true; return; }
+  aiEditToggleEl.hidden = false;
+  aiEditToggleEl.textContent = "✎ Editing: " + (rec.edit ? "on" : "off");
+}
+aiEditToggleEl.onclick = ()=>{
+  const rec = activeGeneratedRec(); if(!rec) return;
+  rec.edit = !rec.edit;
+  setEditMode(rec.edit);        // rebuilds the board with the right click routing + ✎ badge
+  persistTabs();
+  syncEditToggle();
+};
+/* Keep the toggle in step whenever the active tab changes. */
+(function(){ const _sel = selectTab; selectTab = function(tab){ _sel(tab); syncEditToggle(); }; })();
+syncEditToggle();
+
 aiRefreshConn();
 </script>
 
