@@ -112,12 +112,26 @@ async def generate(req: Request):
         client = _llm_client()
         # Note: some Databricks-hosted Claude endpoints (e.g. sonnet-5) reject the
         # `temperature` parameter, so it is deliberately omitted.
+        # max_tokens must cover the model's internal reasoning AND the visible
+        # JSON: sonnet-5 is a reasoning model, so a small cap can be spent almost
+        # entirely on reasoning, leaving the JSON truncated mid-string (the
+        # client then throws "unterminated string in JSON"). Give ample headroom.
         resp = client.chat.completions.create(
             model=model,
             messages=messages,
-            max_tokens=4096,
+            max_tokens=16000,
         )
-        return {"text": _content_text(resp.choices[0].message.content)}
+        choice = resp.choices[0]
+        text = _content_text(choice.message.content)
+        # A length-capped response is truncated (often mid-JSON) — fail cleanly
+        # instead of returning unparseable text the UI would choke on.
+        if getattr(choice, "finish_reason", None) == "length":
+            return JSONResponse(
+                {"error": "The model response was cut off (token limit). Try a shorter "
+                          "description or fewer data sources, then retry."},
+                status_code=502,
+            )
+        return {"text": text}
     except Exception as err:  # surfaces cleanly in the chat UI as an error bubble
         return JSONResponse({"error": str(err)}, status_code=502)
 

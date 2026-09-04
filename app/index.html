@@ -17967,11 +17967,12 @@ async function aiCallApi(key, system, user){
     method:"POST",
     headers:{ "content-type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01",
       "anthropic-dangerous-direct-browser-access":"true" },
-    body: JSON.stringify({ model:AI_MODEL, max_tokens:4000, system, messages:user })
+    body: JSON.stringify({ model:AI_MODEL, max_tokens:16000, system, messages:user })
   });
   if(!r.ok){ let m=r.status+" "+r.statusText; try{const e=await r.json(); if(e.error?.message)m=e.error.message;}catch(_){} throw new Error(m); }
   const d = await r.json();
   if(d.stop_reason==="refusal") throw new Error("Request declined by the safety system.");
+  if(d.stop_reason==="max_tokens") throw new Error("The model response was cut off (token limit). Try a shorter description or fewer data sources, then retry.");
   return (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
 }
 
