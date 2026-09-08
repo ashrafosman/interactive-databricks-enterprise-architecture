@@ -10752,8 +10752,88 @@ async function aiRefreshConn(){
     (aiApiKey ? "using API key (this session)" : "offline — add API key or start the backend");
 }
 
-/* Placeholder: generation wired in Task 7. */
-async function aiSend(){ aiAddMsg("bot","(generation wired in a later step — Task 7 placeholder)"); }
+function aiCreateTab(r, baseArch){
+  const validSet = baseArch ? archAtomSet(baseArch) : null;
+  const ok = name => validSet ? validSet.has(name) : !!resolveAtom(name);
+  const selected = new Set();
+  const notes = {};
+  (r.components || []).forEach(c => {
+    if(c && c.name && ok(c.name)){
+      selected.add(c.name);
+      const ns = Array.isArray(c.notes) ? c.notes.filter(Boolean) : (c.notes ? [String(c.notes)] : []);
+      notes[c.name] = ns.length ? ns : ["Used in this solution."];
+    }
+  });
+  const count = selected.size;
+  if(!count) return { count:0, title:"" };
+  const snap = filterArch(selected, baseArch || null);
+  const title = r.title || "AI Architecture";
+  const blurb = r.blurb || "";
+  const industry = baseArch ? baseArch.industry : null;
+  const id = "custom" + (++tabSeq);
+  if(activeRef){ clearReference(); refBanner.classList.remove("show"); }
+  const tab = makeTab(id, title, "", snap);
+  const rec = customTabs.get(id); if(rec) rec.edit = true;
+  selectTab(tab);
+  persistTabs();
+  if(Object.keys(notes).length){
+    activeRef = { id:"__tab__", name:title, blurb, map:notes };
+    document.getElementById("ref-name").textContent = title;
+    document.getElementById("ref-blurb").textContent = blurb;
+    refBanner.classList.add("show");
+  }
+  return { count, title, industry };
+}
+
+async function aiSend(promptText){
+  const input = (promptText || aiEls.text.value).trim();
+  if(!input || aiState.busy) return;
+  aiEls.text.value = ""; aiEls.text.style.height = "auto";
+  aiEls.sugg.style.display = "none";
+  aiIndHint("");
+  aiAddMsg("user", input);
+  aiState.history.push({ role:"user", content:input });
+  aiSetBusy(true);
+  const thinking = aiAddMsg("bot", "Thinking…");
+  const convo = aiState.history.map(m=>`${m.role==="user"?"USER":"ASSISTANT"}: ${m.content}`).join("\n\n");
+  try{
+    const system = aiSystemPrompt(componentCatalog());
+    let raw;
+    if(aiState.bridge){
+      raw = await aiCallBridge(system, convo);
+    } else {
+      const key = aiApiKey.trim();
+      if(!key) throw new Error("No connection. Run the backend (uvicorn app:app) or add an Anthropic API key below.");
+      raw = await aiCallApi(key, system, aiState.history.map(m=>({role:m.role, content:m.content})));
+    }
+    const result = aiExtractJson(raw);
+    let baseArch = null;
+    const indId = result.industry && result.industry !== "generic" &&
+      (INDUSTRY_BUILT ? INDUSTRY_BUILT.has(result.industry) : isKnownIndustry(result.industry)) ? result.industry : null;
+    if(indId){
+      baseArch = await industryArch(indId);
+      if(baseArch){
+        const sys2 = aiSystemPrompt(catalogFromArch(baseArch));
+        let raw2;
+        try{
+          if(aiState.bridge) raw2 = await aiCallBridge(sys2, convo);
+          else raw2 = await aiCallApi(aiApiKey.trim(), sys2, aiState.history.map(m=>({role:m.role, content:m.content})));
+          const r2 = aiExtractJson(raw2);
+          if(Array.isArray(r2.components) && r2.components.length) result.components = r2.components;
+        }catch(_){ /* keep phase-1 components on phase-2 failure */ }
+      }
+    }
+    const made = aiCreateTab(result, baseArch);
+    thinking.remove();
+    aiAddMsg("bot", result.reply || (made.count ? `Built ${made.count} components.` : "Done."),
+      made.count ? { count:made.count, title:made.title, industry:made.industry } : 0);
+    aiState.history.push({ role:"assistant", content: result.reply || "(applied)" });
+    if(!made.count) aiAddMsg("bot", "Couldn't map any components — try a more specific description.");
+  }catch(err){
+    thinking.remove();
+    const m = aiAddMsg("bot", "⚠ "+err.message); m.className="ai-msg err";
+  }finally{ aiSetBusy(false); }
+}
 
 aiEls.fab.onclick = ()=>{ aiEls.panel.classList.add("show"); aiEls.fab.classList.add("hide");
   aiRefreshConn(); aiEls.text.focus();
