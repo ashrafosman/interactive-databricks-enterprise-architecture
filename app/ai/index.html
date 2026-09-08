@@ -10470,6 +10470,288 @@ function bootLang(){
   if(meta && meta.code !== "en"){ applyLang(meta.code, false); }
   else { syncLangMenu(); translateContent(); }
 }
+
+/* ==================================================================
+   10. AI ARCHITECTURE ASSISTANT
+   Describe a customer / use case and the model builds a tailored
+   architecture as a new tab. Two-phase: phase-1 detects the industry
+   on the generic catalog; if an industry is detected, phase-2
+   re-grounds selection on that industry's own board.
+   Connection order: local bridge (/health) -> direct Anthropic API
+   with an in-memory key -> error.
+   ================================================================== */
+const AI_MODEL = "claude-sonnet-5";
+let aiApiKey = "";                       // in memory only; never persisted
+const aiState = { busy:false, bridge:false, history:[] };
+
+/* Real, highlightable component names grouped by section. Built from byId
+   (post-build) so it always matches the live board + current cloud provider. */
+function componentCatalog(){
+  const bySection = new Map();
+  const seen = new Set();
+  Object.values(byId).forEach(rec=>{
+    const name = rec.tile && rec.tile.n; if(!name) return;
+    const key = rec.section || "Platform";
+    if(!bySection.has(key)) bySection.set(key, []);
+    const tag = key + " " + name;
+    if(seen.has(tag)) return; seen.add(tag);
+    bySection.get(key).push(name);
+  });
+  return [...bySection.entries()].map(([sec, names])=> `  ${sec}: ${names.join(" | ")}`).join("\n");
+}
+
+/* Component catalog built from an arbitrary arch object (e.g. an industry board),
+   not the live byId. */
+function catalogFromArch(arch){
+  const lines = [];
+  const names = node => { const out = []; (function walk(n){
+    if(Array.isArray(n)) n.forEach(walk);
+    else if(n && typeof n === "object"){
+      if(typeof n.n === "string") out.push(n.n);
+      Object.keys(n).forEach(k=>{ if(k!=="n") walk(n[k]); });
+    }
+  })(node); return [...new Set(out)]; };
+  (arch.bands||[]).forEach(b=>{ const ns = names(b.rows); if(ns.length) lines.push(`  ${b.name||b.id}: ${ns.join(" | ")}`); });
+  ["src","ing","ppl","cons"].forEach(rid=>{ const rail = arch.rails && arch.rails[rid]; if(!rail) return;
+    const ns = names(rail.groups); if(ns.length) lines.push(`  ${rail.name||rid}: ${ns.join(" | ")}`); });
+  if(arch.top && Array.isArray(arch.top.secs)){ const ns = names(arch.top.secs); if(ns.length) lines.push(`  Apps & Use Cases: ${ns.join(" | ")}`); }
+  if(arch.cloud){ const ns = names([arch.cloud.extras, arch.cloud.providers]); if(ns.length) lines.push(`  Cloud Services & Integrations: ${ns.join(" | ")}`); }
+  return lines.join("\n");
+}
+
+/* The set of names (and cloud:<role> handles) an arch actually contains. */
+function archAtomSet(arch){
+  const set = new Set();
+  (function walk(n){
+    if(Array.isArray(n)) n.forEach(walk);
+    else if(n && typeof n === "object"){
+      if(typeof n.n === "string") set.add(n.n);
+      if(typeof n.role === "string") set.add("cloud:" + n.role);
+      Object.keys(n).forEach(k=> walk(n[k]));
+    }
+  })({ bands:arch.bands, rails:arch.rails, top:arch.top, cloud:arch.cloud });
+  return set;
+}
+
+/* Industry ids the model may pick from — only those actually built.
+   INDUSTRY_BUILT is a Set loaded from architectures/manifest.json, or null if
+   the manifest is missing (treat all catalog entries as candidates). */
+function industryPromptList(){
+  return INDUSTRY_CATALOG
+    .filter(([id]) => INDUSTRY_BUILT === null || INDUSTRY_BUILT.has(id))
+    .map(([id, label]) => `  ${id} — ${label}`)
+    .join("\n");
+}
+
+function aiSystemPrompt(catalogText){
+  const cat = catalogText || componentCatalog();
+  return `You are a Databricks solutions architect helping a colleague tailor a Databricks Data Intelligence Platform reference architecture to a customer's needs.
+
+You are given a fixed catalog of architecture COMPONENTS (below), organized by section. The sections span the whole board: the platform bands, the Apps & Use Cases band, the Sources / Cloud & 3rd-Party Ingestion / People / Consumers boxes, and the Cloud Services & Integrations band. Your job: from the user's description of a customer / use case / data, decide which components across ALL sections are relevant, and explain briefly how each is used for THIS solution. You do not invent products or rename anything — you may only reference the exact names given.
+
+COMPONENTS (grouped by section):
+${cat}
+
+INDUSTRIES (pick the single best-matching id for the customer, or "" if none clearly applies):
+${industryPromptList()}
+
+Respond with ONLY a single JSON object (no prose, no markdown fences), shaped exactly:
+{
+  "reply": "1-3 sentence conversational message to the user about what you highlighted or answering their question",
+  "title": "<Customer or use-case> — <short solution name>",
+  "blurb": "one sentence describing the solution flow",
+  "industry": "<one industry id from the list above, or empty string if none clearly fits>",
+  "components": [
+    { "name": "<EXACT component name from the catalog>", "notes": ["short phrase on how it is used here", "optional 2nd phrase"] }
+  ]
+}
+
+RULES:
+- Use ONLY exact names from the catalog. Drop anything that doesn't match a listed name.
+- Include the relevant Sources / ingestion / People / Consumers / Cloud Services components that surround this use case — not just the platform bands.
+- Pick the components that genuinely matter (typically 8-18 across all sections) — do not select everything.
+- Each component gets 1-2 concise usage notes specific to this customer/use case.
+- For a follow-up that refines the current solution, return the FULL updated component set (not just the delta).
+- If the user only asks a question and no change is needed, return "components": [] and keep "reply" helpful.
+- Set "industry" to the ONE id that best fits the customer's sector; use "" (empty) if the description is generic or spans many. Never invent an id.
+- Return ONLY the JSON object.`;
+}
+
+function aiExtractJson(text){
+  let t = String(text).trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(fence) t = fence[1].trim();
+  if(t[0] !== "{"){ const a=t.indexOf("{"), b=t.lastIndexOf("}"); if(a>=0&&b>a) t=t.slice(a,b+1); }
+  return JSON.parse(t);
+}
+
+async function aiBridgeHealthy(){
+  try{ const r = await fetch("/health"); if(!r.ok) return false; const d = await r.json(); return !!d.ok; }
+  catch(_){ return false; }
+}
+async function aiCallBridge(system, user){
+  const r = await fetch("/generate", { method:"POST", headers:{"content-type":"application/json"},
+    body: JSON.stringify({ model:AI_MODEL, system, user }) });
+  if(!r.ok){ let m=r.status+" "+r.statusText; try{const e=await r.json(); if(e.error)m=e.error;}catch(_){} throw new Error(m); }
+  return (await r.json()).text || "";
+}
+async function aiCallApi(key, system, user){
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{ "content-type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true" },
+    body: JSON.stringify({ model:AI_MODEL, max_tokens:16000, system, messages:user })
+  });
+  if(!r.ok){ let m=r.status+" "+r.statusText; try{const e=await r.json(); if(e.error?.message)m=e.error.message;}catch(_){} throw new Error(m); }
+  const d = await r.json();
+  if(d.stop_reason==="refusal") throw new Error("Request declined by the safety system.");
+  if(d.stop_reason==="max_tokens") throw new Error("The model response was cut off (token limit). Try a shorter description or fewer data sources, then retry.");
+  return (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+}
+
+/* ----- chat UI ----- */
+const aiEls = {
+  fab: document.getElementById("ai-fab"), panel: document.getElementById("ai-panel"),
+  msgs: document.getElementById("ai-msgs"), text: document.getElementById("ai-text"),
+  send: document.getElementById("ai-send"), dot: document.getElementById("ai-dot"),
+  conn: document.getElementById("ai-conn-txt"), sugg: document.getElementById("ai-sugg"),
+};
+function aiAddMsg(role, text, applied){
+  const d = document.createElement("div");
+  d.className = "ai-msg " + role;
+  d.textContent = text;
+  if(applied && applied.count){ const a=document.createElement("div"); a.className="applied";
+    a.textContent = `✦ Created tab "${applied.title}" with ${applied.count} component${applied.count>1?"s":""}${applied.industry ? " (" + industryLabel(applied.industry) + ")" : ""}.`; d.appendChild(a); }
+  else if(applied){ const a=document.createElement("div"); a.className="applied";
+    a.textContent = `✦ Applied ${applied} components.`; d.appendChild(a); }
+  aiEls.msgs.appendChild(d);
+  aiEls.msgs.scrollTop = aiEls.msgs.scrollHeight;
+  return d;
+}
+function aiSetBusy(b){
+  aiState.busy = b;
+  aiEls.send.disabled = b;
+  aiEls.dot.className = "ai-dot " + (b ? "busy" : (aiState.bridge ? "on" : ""));
+}
+async function aiRefreshConn(){
+  aiState.bridge = await aiBridgeHealthy();
+  aiEls.dot.className = "ai-dot " + (aiState.bridge ? "on" : "");
+  aiEls.conn.textContent = aiState.bridge ? "model connected" :
+    (aiApiKey ? "using API key (this session)" : "offline — add API key or start the backend");
+}
+
+/* Placeholder: generation wired in Task 7. */
+async function aiSend(){ aiAddMsg("bot","(generation wired in a later step — Task 7 placeholder)"); }
+
+aiEls.fab.onclick = ()=>{ aiEls.panel.classList.add("show"); aiEls.fab.classList.add("hide");
+  aiRefreshConn(); aiEls.text.focus();
+  if(!aiEls.msgs.children.length) aiAddMsg("bot", "Describe a customer and use case, and I'll build a tailored architecture as a new tab. e.g. \"Real-time fraud detection for a retail bank streaming card transactions.\""); };
+document.getElementById("ai-x").onclick = ()=>{ aiEls.panel.classList.remove("show"); aiEls.fab.classList.remove("hide"); };
+aiEls.send.onclick = ()=> aiSend();
+aiEls.text.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); aiSend(); } });
+aiEls.text.addEventListener("input", ()=>{ aiEls.text.style.height="auto"; aiEls.text.style.height=Math.min(aiEls.text.scrollHeight,120)+"px"; aiIndHint(aiEls.text.value); });
+aiEls.sugg.querySelectorAll("button").forEach(b=> b.onclick = ()=> aiSend(b.dataset.q));
+
+/* Type-ahead: surface built industries whose name matches the text. */
+const aiIndHintEl = document.getElementById("ai-indhint");
+const IND_SYNONYMS = {
+  banking:["bank","banks","fintech finance","financial"], payments_fintech:["fintech","payments","payment"],
+  healthcare:["hospital","health system","provider","clinic","patient"], health_insurance:["payer","health plan"],
+  life_insurance:["insurer","insurance"], telecommunication:["telecom","telco","carrier","mobile operator"],
+  retail:["retailer","store","shop"], ecommerce:["e-commerce","online store","webshop"],
+  manufacturing:["factory","plant","industrial"], oil_gas:["oil","gas","petroleum","upstream"],
+  energy_utilities:["utility","utilities","power","grid"], media_broadcasting:["media","broadcaster","streaming"],
+  travel_hospitality:["hotel","hospitality","travel"], transport_shipping:["logistics","freight","transport"],
+  automotive:["auto","car","vehicle","oem"], pharmaceuticals:["pharma","drug"],
+  gaming:["games","game studio","igaming"], grocery:["supermarket","grocer"], restaurants:["restaurant","qsr","food service"],
+};
+const IND_STOP = new Set(["real","life","media","gas","oil","food","water","waste","health","goods","apparel","sports","chemical"]);
+function aiIndustryMatches(text){
+  const q = String(text||"").toLowerCase().trim();
+  if(q.length < 3) return [];
+  const scored = [];
+  INDUSTRY_CATALOG.forEach(([id,label])=>{
+    if(INDUSTRY_BUILT !== null && !INDUSTRY_BUILT.has(id)) return;
+    const lc = label.toLowerCase();
+    const words = lc.split(/[^a-z]+/).filter(Boolean);
+    const strong = [lc, ...(IND_SYNONYMS[id]||[])];
+    const weak = words.filter(w=> w.length >= 4 && !IND_STOP.has(w));
+    let best = 0;
+    const wb = t => new RegExp("\\b"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(q);
+    strong.forEach(t=>{
+      if(!t) return;
+      if(q === t) best = Math.max(best, 100);
+      else if(wb(t)) best = Math.max(best, 85);
+      else if(t.length >= 5 && q.includes(t)) best = Math.max(best, 60);
+    });
+    weak.forEach(t=>{ if(wb(t)) best = Math.max(best, 70); });
+    if(best) scored.push({ id, label, score:best });
+  });
+  return scored.sort((a,b)=> b.score - a.score).slice(0,3);
+}
+function aiIndHint(text){
+  const matches = aiIndustryMatches(text);
+  aiIndHintEl.innerHTML = "";
+  if(!matches.length){ aiIndHintEl.hidden = true; return; }
+  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = "Use standard industry:";
+  aiIndHintEl.appendChild(lbl);
+  matches.forEach(m=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = `${esc(m.label)} <span class="arr">→</span>`;
+    b.title = `Switch the Reference board to the ${m.label} architecture`;
+    b.onclick = ()=>{
+      const refTab = tabsEl.querySelector('.tab[data-tab="reference"]');
+      const active = tabsEl.querySelector(".tab.active");
+      if(refTab && active !== refTab) selectTab(refTab);
+      applyIndustry(m.id, true);
+      aiIndHintEl.hidden = true; aiIndHintEl.innerHTML = "";
+      aiAddMsg("bot", `Switched the Reference board to the ${m.label} standard architecture.`);
+    };
+    aiIndHintEl.appendChild(b);
+  });
+  aiIndHintEl.hidden = false;
+}
+document.getElementById("ai-clear").onclick = ()=>{
+  const activeTab = tabsEl.querySelector(".tab.active");
+  const activeId = activeTab && activeTab.dataset.tab;
+  const activeCustom = activeId && customTabs.get(activeId);
+  if(activeCustom && activeCustom.snap){
+    closeTab(activeTab);
+    aiAddMsg("bot","Closed the generated tab — back to the full platform.");
+  } else {
+    clearReference(); refBanner.classList.remove("show");
+    aiAddMsg("bot","Cleared the highlight — the full platform is shown again.");
+  }
+};
+document.getElementById("ai-key-toggle").onclick = ()=> document.getElementById("ai-key-row").classList.toggle("show");
+(function(){ const k=document.getElementById("ai-key");
+  k.addEventListener("input", e=>{ aiApiKey = e.target.value.trim(); aiRefreshConn(); }); })();
+
+/* Edit toggle: visible only on a generated (editable) tab. */
+const aiEditToggleEl = document.getElementById("ai-edit-toggle");
+function activeGeneratedRec(){
+  const act = activeTabEl();
+  const rec = act && customTabs.get(act.dataset.tab);
+  return (rec && rec.snap) ? rec : null;
+}
+function syncEditToggle(){
+  const rec = activeGeneratedRec();
+  if(!rec){ aiEditToggleEl.hidden = true; return; }
+  aiEditToggleEl.hidden = false;
+  aiEditToggleEl.textContent = "✎ Editing: " + (rec.edit ? "on" : "off");
+}
+aiEditToggleEl.onclick = ()=>{
+  const rec = activeGeneratedRec(); if(!rec) return;
+  rec.edit = !rec.edit;
+  setEditMode(rec.edit);
+  persistTabs();
+  syncEditToggle();
+};
+(function(){ const _sel = selectTab; selectTab = function(tab){ _sel(tab); syncEditToggle(); }; })();
+syncEditToggle();
+
+aiRefreshConn();
 </script>
 
 
