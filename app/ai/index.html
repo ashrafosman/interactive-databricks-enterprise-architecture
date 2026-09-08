@@ -5605,6 +5605,13 @@ function clearRefPaint(){
   });
 }
 function paintRef(ref){
+  /* __tab__ refs show the banner and make notes accessible but do NOT dim the
+     board — no ref-mode class, no .mapped badges — because the generated tab's
+     own arch is the board and dimming it would make it unreadable. */
+  if(ref && ref.id === "__tab__"){
+    clearRefPaint();
+    return;
+  }
   clearRefPaint();
   document.body.classList.add("ref-mode");
   Object.entries(ref.map).forEach(([name, items])=>{
@@ -10483,6 +10490,111 @@ function bootLang(){
 const AI_MODEL = "claude-sonnet-5";
 let aiApiKey = "";                       // in memory only; never persisted
 const aiState = { busy:false, bridge:false, history:[] };
+
+/* ------------------------------------------------------------------
+   Board-transform helpers (Task 5)
+   ------------------------------------------------------------------ */
+
+/* Pure, synchronous industry overlay. Assumes INDUSTRIES[id] already
+   loaded by caller (via await loadIndustry). Mutates `fields` in place;
+   no build/persist/side-effects. Mirrors the field-mutation body of the
+   base's async applyIndustry (lines ~3946-3987 of app/index.html). */
+function applyIndustryTo(fields, id){
+  const ind = INDUSTRIES[id];
+  const fresh = JSON.parse(JSON.stringify(BASE));
+  fields.rails = fresh.rails;
+  fields.top   = fresh.top;
+  /* Reset only medallion stages from BASE, not whole bands. */
+  const baseStages = (function(){
+    for(const band of fresh.bands){
+      for(const row of (band.rows || [])){
+        if(row.kind === "medallion" && Array.isArray(row.stages)) return row.stages;
+      }
+    }
+    return null;
+  })();
+  const stages = (function(){
+    for(const band of fields.bands){
+      for(const row of (band.rows || [])){
+        if(row.kind === "medallion" && Array.isArray(row.stages)) return row.stages;
+      }
+    }
+    return null;
+  })();
+  if(stages && baseStages){
+    stages.forEach((st, i)=>{
+      const b = baseStages[i];
+      if(b){ st.s = b.s; st.long = b.long; }
+    });
+  }
+  fields.industry = ind ? id : "generic";
+  if(ind){
+    if(ind.rails){
+      RAIL_IDS.forEach(rid=>{
+        if(Array.isArray(ind.rails[rid])) fields.rails[rid].groups = JSON.parse(JSON.stringify(ind.rails[rid]));
+      });
+    }
+    if(Array.isArray(ind.top)){
+      fields.top.secs = JSON.parse(JSON.stringify(ind.top));
+      if(typeof prioritiseUseCases === "function") prioritiseUseCases(fields.top.secs);
+    }
+    if(ind.blurb) fields.top.sub = ind.blurb;
+    if(ind.medallion && stages){
+      stages.forEach(st=>{
+        const o = ind.medallion[st.n];
+        if(o){ if(o.s) st.s = o.s; if(o.long) st.long = o.long; }
+      });
+    }
+  }
+}
+
+/* Async: load the industry if needed, then return a deep-cloned arch
+   snapshot with that industry's overlay applied. Never mutates the live
+   board or refSnap. Returns null if the industry cannot be loaded. */
+async function industryArch(id){
+  if(!(await loadIndustry(id))) return null;
+  const src = refSnap || boardSnapshot();
+  const clone = JSON.parse(JSON.stringify({ bands:src.bands, rails:src.rails, top:src.top, cloud:src.cloud }));
+  applyIndustryTo(clone, id);
+  clone.industry = id;
+  return { schema:SCHEMA, industry:id, bands:clone.bands, rails:clone.rails, top:clone.top, cloud:clone.cloud };
+}
+
+/* Keep only selected atoms. `selected` is a Set of name/cloud:role strings.
+   `base` is an optional arch snapshot (e.g. from industryArch); falls back
+   to refSnap then boardSnapshot — never a CANON global. */
+function filterArch(selected, base){
+  const src = base || refSnap || boardSnapshot();
+  const clone = JSON.parse(JSON.stringify({ bands:src.bands, rails:src.rails, top:src.top, cloud:src.cloud }));
+  const keepTile = t => t && typeof t.n === "string" &&
+    (selected.has(t.n) || (t.role && selected.has("cloud:" + t.role)));
+  const isAtomArray = arr => Array.isArray(arr) && arr.some(x => x && typeof x === "object" && typeof x.n === "string");
+  const walk = node => {
+    let kept = false;
+    if(Array.isArray(node)){
+      if(isAtomArray(node)){
+        for(let i = node.length - 1; i >= 0; i--){
+          if(node[i] && typeof node[i].n === "string"){
+            if(keepTile(node[i])) kept = true; else node.splice(i, 1);
+          } else if(walk(node[i])) kept = true;
+        }
+      } else {
+        for(let i = node.length - 1; i >= 0; i--){ if(walk(node[i])) kept = true; }
+      }
+    } else if(node && typeof node === "object"){
+      for(const k of Object.keys(node)){ if(walk(node[k])) kept = true; }
+    }
+    return kept;
+  };
+  walk(clone.bands);
+  clone.bands = clone.bands.filter(b => walk(b.rows));
+  ["src","ing","ppl","cons"].forEach(rid => {
+    const rail = clone.rails[rid]; if(!rail) return;
+    rail.groups = (rail.groups || []).filter(g => walk(g));
+  });
+  if(clone.top && Array.isArray(clone.top.secs)) clone.top.secs = clone.top.secs.filter(s => walk(s));
+  return { schema:SCHEMA, industry:(src.industry || "generic"), bands:clone.bands, rails:clone.rails, top:clone.top, cloud:clone.cloud };
+}
 
 /* Real, highlightable component names grouped by section. Built from byId
    (post-build) so it always matches the live board + current cloud provider. */
