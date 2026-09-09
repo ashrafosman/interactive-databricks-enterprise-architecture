@@ -351,6 +351,17 @@ Generic descriptions skip Phase 2.
 as chips. Picking one switches the Reference board to that industry immediately — it does
 not generate a tab; it is a separate shortcut to the board's existing industry switch.
 
+**Editing a generated architecture.** Every generated tab opens with edit mode on (the
+`✎ Editing: on` toggle in the chat header), so it is a working draft you can shape by
+hand, not a fixed output. Click any component on the board to edit it in the drawer —
+change its **title**, its **caption / description line**, the **detail text** that
+explains what it does in this architecture, and its **capabilities** (comma-separated
+tags) — or **delete** it outright. Double-click a tab's name to **rename** it. Edits are
+scoped to that tab and persist between reloads; the toggle is per-tab, so switching to the
+Reference board turns editing off and the reference stays read-only. The AI's per-component
+usage notes ride along too: hover any component on a generated tab to see why the assistant
+included it.
+
 **Shared templates, zero extra maintenance.** `app/ai/index.html` sets `<base href="../">`
 so all relative fetches resolve against `app/`. The assistant reuses the shared
 `app/architectures/*.yaml` templates, `app/resources/*.json`, `app/translations/*`, and
