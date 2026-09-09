@@ -328,6 +328,44 @@ rather than a preference.
 
 ---
 
+## AI Architecture Assistant (`app/ai/`)
+
+A chat-driven sub-app that lets you describe a customer or use case and receive a new,
+editable, persisted tab containing a tailored architecture — without touching the
+reference board. The reference board stays live and unmodified; the generated tab is its
+own independent copy.
+
+**What it does.** Type a description in the chat input. The assistant detects the
+best-fit industry from what you wrote, generates a tab filtered to the components most
+relevant to that use case, and opens it with edit mode pre-enabled. The tab persists
+between reloads. The reference board is never switched or mutated by industry detection.
+
+**Two-phase, industry-grounded selection.** Phase 1 grounds the model on the live
+generic board catalog and identifies the best-fit industry. Phase 2 — only when a known
+built industry matches — loads that industry's YAML template and re-runs component
+selection against that industry's own catalog, so industry-specific atoms (for example,
+banking's core-banking systems or healthcare's EHR vendors) are included in the output.
+Generic descriptions skip Phase 2.
+
+**Industry type-ahead chip.** As you type in the chat input, matching industries surface
+as chips. Picking one switches the Reference board to that industry immediately — it does
+not generate a tab; it is a separate shortcut to the board's existing industry switch.
+
+**Shared templates, zero extra maintenance.** `app/ai/index.html` sets `<base href="../">`
+so all relative fetches resolve against `app/`. The assistant reuses the shared
+`app/architectures/*.yaml` templates, `app/resources/*.json`, `app/translations/*`, and
+supporting JS files from the parent directory. Any new industry template added to
+`app/architectures/` is automatically available to the AI assistant with no code changes.
+
+**Backend.** `app/ai/app.py` is a FastAPI server (not the upstream stdlib `main.py`). It
+serves `index.html`, exposes `/health` and `POST /generate {system,user,model}->{text}`,
+and mounts the parent `app/` subdirectories as static paths so the `<base href="../">`
+fetches resolve. `/generate` calls a Databricks-hosted Claude Foundation Model serving
+endpoint (default `databricks-claude-sonnet-5`, override via `SERVING_ENDPOINT` env)
+using the injected WorkspaceClient OAuth identity — no API key is required or stored.
+
+---
+
 ## How to deploy
 
 ### Option 1: the installer notebook (recommended)
