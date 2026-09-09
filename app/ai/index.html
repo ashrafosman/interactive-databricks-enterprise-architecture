@@ -10809,7 +10809,7 @@ async function aiSend(promptText){
     const result = aiExtractJson(raw);
     let baseArch = null;
     const indId = result.industry && result.industry !== "generic" &&
-      (INDUSTRY_BUILT ? INDUSTRY_BUILT.has(result.industry) : isKnownIndustry(result.industry)) ? result.industry : null;
+      (INDUSTRY_BUILT ? INDUSTRY_BUILT.has(result.industry) : false) ? result.industry : null;
     if(indId){
       baseArch = await industryArch(indId);
       if(baseArch){
@@ -10826,7 +10826,7 @@ async function aiSend(promptText){
     const made = aiCreateTab(result, baseArch);
     thinking.remove();
     aiAddMsg("bot", result.reply || (made.count ? `Built ${made.count} components.` : "Done."),
-      made.count ? { count:made.count, title:made.title, industry:made.industry } : 0);
+      made.count ? { count:made.count, title:made.title, industry:made.industry } : null);
     aiState.history.push({ role:"assistant", content: result.reply || "(applied)" });
     if(!made.count) aiAddMsg("bot", "Couldn't map any components — try a more specific description.");
   }catch(err){
