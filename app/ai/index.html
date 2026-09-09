@@ -5875,6 +5875,8 @@ let restoredActive = null;
       (t.snap && typeof t.snap === "object") ? t.snap : null);
     /* keep the counter ahead of every restored id so + cannot collide */
     tabSeq = Math.max(tabSeq, parseInt(t.id.slice(6), 10) || 0);
+    const rec = customTabs.get(t.id);
+    if(rec){ if(t.blurb!=null) rec.blurb = String(t.blurb); if(t.notes && typeof t.notes==="object") rec.notes = t.notes; rec.edit = !!t.edit; }
   });
   if(customTabs.has(s.active)) restoredActive = s.active;
   updateEditVisibility();
@@ -10773,7 +10775,7 @@ function aiCreateTab(r, baseArch){
   const id = "custom" + (++tabSeq);
   if(activeRef){ clearReference(); refBanner.classList.remove("show"); }
   const tab = makeTab(id, title, "", snap);
-  const rec = customTabs.get(id); if(rec) rec.edit = true;
+  const rec = customTabs.get(id); if(rec){ rec.edit = true; rec.blurb = blurb; rec.notes = notes; }
   selectTab(tab);
   persistTabs();
   if(Object.keys(notes).length){
@@ -10940,7 +10942,23 @@ aiEditToggleEl.onclick = ()=>{
   persistTabs();
   syncEditToggle();
 };
-(function(){ const _sel = selectTab; selectTab = function(tab){ _sel(tab); syncEditToggle(); }; })();
+(function(){ const _sel = selectTab; selectTab = function(tab){
+  _sel(tab);
+  /* Re-establish notes overlay and scope edit-mode to the active tab. */
+  const act = activeTabEl && activeTabEl();
+  const rec = act && customTabs && customTabs.get(act.dataset.tab);
+  if(rec && rec.notes && typeof rec.notes === "object" && Object.keys(rec.notes).length){
+    activeRef = { id:"__tab__", name:rec.name||"", blurb:rec.blurb||"", map:rec.notes };
+    document.getElementById("ref-name").textContent = rec.name||"";
+    document.getElementById("ref-blurb").textContent = rec.blurb||"";
+    refBanner.classList.add("show");
+  } else {
+    if(activeRef && activeRef.id==="__tab__"){ clearReference(); refBanner.classList.remove("show"); }
+  }
+  const arec = activeGeneratedRec();
+  setEditMode(arec ? !!arec.edit : false);
+  syncEditToggle();
+}; })();
 syncEditToggle();
 
 aiRefreshConn();
