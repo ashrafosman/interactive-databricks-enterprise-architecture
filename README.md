@@ -377,6 +377,62 @@ using the injected WorkspaceClient OAuth identity — no API key is required or 
 
 ---
 
+## MCP server (`app/mcp/`)
+
+The same 63 industry reference architectures are also exposed as an **MCP server**, so
+an agent — Claude Code, Claude Desktop, or any Model Context Protocol client — can list,
+fetch, and search them programmatically, without the browser app.
+
+It reads `app/architectures/*.yaml` and `app/resources/*.json` directly — the same shared
+templates the web app uses — so a new industry dropped into `architectures/` shows up
+through the tools with no code change.
+
+**Tools**
+
+| Tool | Args | Returns |
+|------|------|---------|
+| `list_industries` | — | `[{id, name, description}]` for all 63 industries |
+| `get_architecture` | `industry_id` | one industry's full architecture (sources, cloud integrations, pipelines/medallion, consumers, agent use cases) |
+| `search_architectures` | `query` | `[{id, name, matches}]` — industries whose name/description/components mention the query |
+| `list_resources` | `kind` | one of the shared maps: `accelerators`, `connectors`, `links`, `references` |
+
+**Run it**
+
+```bash
+cd app/mcp
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python server.py            # stdio transport
+```
+
+**Register with Claude Code** (tools then appear as `mcp__arch-explorer__*`):
+
+```bash
+claude mcp add arch-explorer -- "$(pwd)/.venv/bin/python" "$(pwd)/server.py"
+```
+
+Or add to a project `.mcp.json`:
+
+```json
+{ "mcpServers": { "arch-explorer": { "command": "/abs/path/app/mcp/.venv/bin/python",
+                                     "args": ["/abs/path/app/mcp/server.py"] } } }
+```
+
+**Use it.** Just ask in natural language — the client's own model calls the tools and
+grounds its answer in the live templates:
+
+- *"List the industry reference architectures."* → `list_industries`
+- *"Show me the banking reference architecture."* → `get_architecture("banking")`
+- *"Which industries cover fraud detection?"* → `search_architectures("fraud")`
+- *"What Lakeflow connectors are available?"* → `list_resources("connectors")`
+- *"Design a real-time fraud architecture for a retail bank"* → the model searches the
+  templates, pulls the closest industry, and synthesises a tailored architecture from it.
+
+Retrieval only — it serves the templates as-is. Generating a tailored architecture from a
+free-text description is done by the calling model, not a server-side LLM tool. See
+`app/mcp/README.md` for details.
+
+---
+
 ## How to deploy
 
 ### Option 1: the installer notebook (recommended)
@@ -469,6 +525,11 @@ app/
   index.html               the whole diagram: markup, styles, logic, model, logos
   main.py                  static server for Databricks Apps, standard library only
   app.yaml                 Databricks App entry point
+  architectures/           the 63 industry reference architectures (one YAML each) + manifest
+  resources/               shared maps: accelerators, connectors, links, references
+  vendor/                  js-yaml (parses the industry YAMLs in the browser)
+  ai/                      AI Architecture Assistant — FastAPI backend + its index.html
+  mcp/                     MCP server exposing the reference architectures as tools
 docs/                      the screenshots and the animated export used above
 tools/
   palgen.py                generates the colour palettes with solved contrast
