@@ -338,6 +338,36 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'LTI'
+        icon: zbraces
+        fmt: 'LTI'
+        summary: '1EdTech Learning Tools Interoperability for launching external tools inside an LMS.'
+        spec_url: https://www.1edtech.org/standards/lti
+      - name: 'OneRoster'
+        icon: zbraces
+        fmt: '1R'
+        summary: '1EdTech standard for exchanging class rosters, enrolments and gradebook data.'
+        spec_url: https://www.1edtech.org/standards/oneroster
+      - name: 'QTI'
+        icon: zbraces
+        fmt: 'QTI'
+        summary: 'Question and Test Interoperability for portable assessment content and results.'
+        spec_url: https://www.1edtech.org/standards/qti
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Canvas'
+          - 'TAO'
+          - 'Respondus'
+      - name: 'Caliper Analytics'
+        icon: zbraces
+        fmt: 'CAL'
+        summary: '1EdTech learning-event data standard for capturing analytics across tools.'
+        spec_url: https://www.1edtech.org/standards/caliper
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -567,7 +597,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Executive and board dashboards against serverless SQL warehouses, with Unity Catalog permissions enforced end to end.
+        summary: Executive and board dashboards against SQL warehouses, with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for Unity Catalog-governed answers from the lakehouse, in the channel product and learning teams already work in (Beta).
@@ -595,7 +625,7 @@ consumers:
     tiles:
       - name: LTI Grade Passback
         icon: reverse
-        summary: Grades and mastery written back into the customer's LMS gradebook over LTI so the score reaches the course the learner works in.
+        summary: Grades and supported mastery representations written back into the customer's LMS gradebook over LTI so the score reaches the course the learner works in.
         citations:
           - oneroster
       - name: CRM Health Writeback
@@ -626,7 +656,7 @@ consumers:
         summary: Access and consent evidence for FERPA and COPPA produced from the same governed tables the product runs on.
       - name: Privacy & DSAR
         icon: zshield
-        summary: GDPR and CCPA subject access and deletion for learners and guardians fulfilled from one governed learner record.
+        summary: GDPR and CCPA subject access and deletion for learners and guardians coordinated across linked learner, guardian and tenant records rather than a single record.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -641,7 +671,7 @@ consumers:
       - name: Outcomes Studio
         icon: chart
         short: Efficacy analytics
-        summary: Where learning scientists and product prove which content, sequence and intervention actually move outcomes, on the same certified metrics the executive team reads.
+        summary: Where learning scientists and product evaluate which content, sequence and intervention move outcomes, with causal estimates conditioned on documented study design, on the same certified metrics the executive team reads.
       - name: Integrity Monitor
         icon: watch
         short: Exam integrity
@@ -715,19 +745,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -754,7 +784,7 @@ agent_usecases:
           - How does engagement differ between free and paid learners?
       - name: Learning Outcomes Agent
         icon: genie
-        summary: Explore mastery, adaptive-path performance and content efficacy across the product.
+        summary: Explore mastery, adaptive-path performance and content efficacy, qualifying control comparisons by study type.
         feeds:
           - xAPI Record Store
           - Instructure Canvas
@@ -790,7 +820,7 @@ agent_usecases:
           - What is the ARR bridge for the quarter so far?
       - name: Trust & Integrity Agent
         icon: genie
-        summary: Ask about exam anomalies, proctoring signals and support deflection.
+        summary: Ask about exam anomalies, proctoring flags, reviewed safety cases, DSAR status and support deflection.
         feeds:
           - Proctorio
           - Zendesk Support
@@ -850,7 +880,7 @@ agent_usecases:
       - name: Content Efficacy
         short: Efficacy
         icon: chart
-        summary: Proving which content, sequence and intervention actually move learning outcomes, measured against a control rather than asserted from a content calendar.
+        summary: Comparing which content, sequence and intervention move learning outcomes against a control, with causal claims conditioned on documented study design and assignment rather than asserted from a content calendar.
         problem: Content is shipped on intuition and refreshed on a calendar, while the evidence of what actually teaches sits unjoined across engagement, assessment and outcome data.
         who_benefits: Learning Science
         how_built: Engagement and outcome events are conformed to certified Metric Views; efficacy is measured in AI/BI from the Outcomes Studio on one definition of mastery under Unity Catalog.

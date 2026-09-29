@@ -61,7 +61,7 @@ sources:
         icon: stream
         summary: 'Motorola PremierOne computer-aided dispatch: call intake, unit recommendation and incident timestamps, a widely deployed CAD system of record feeding the same incident and unit entities.'
         citations:
-          - centralsquare
+          - motorola-cad
         category: Computer-Aided Dispatch (CAD)
         what_it_is: Widely deployed CAD covering call intake, unit recommendation and incident timestamps, feeding the same incident and unit entities.
         who_uses_it: Dispatchers, watch commanders and patrol operations.
@@ -301,6 +301,31 @@ sources:
               - structured
             volume: TB-scale controlled records
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'CAP'
+        icon: zbraces
+        fmt: 'CAP'
+        summary: 'OASIS Common Alerting Protocol for all-hazard public warning messages.'
+        spec_url: https://docs.oasis-open.org/emergency/cap/v1.2/CAP-v1.2.html
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Everbridge'
+          - 'FEMA IPAWS'
+          - 'Rave Mobile Safety'
+      - name: 'EDXL'
+        icon: zbraces
+        fmt: 'EDXL'
+        summary: 'OASIS Emergency Data Exchange Language suite for incident and resource messaging.'
+        spec_url: https://www.oasis-open.org/committees/emergency/
+      - name: 'NENA i3'
+        icon: zbraces
+        fmt: 'i3'
+        summary: 'NENA standard for Next Generation 9-1-1 IP-based emergency call handling.'
+        spec_url: https://www.nena.org/page/i3_Stage3
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -500,7 +525,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Command and oversight dashboards against serverless SQL with Unity Catalog permissions enforced end to end.
+        summary: Command and oversight dashboards against SQL warehouses with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for Unity Catalog-governed answers in the channel command staff already work in (Beta).
@@ -576,7 +601,7 @@ consumers:
       - name: Evidence Finder
         icon: media
         short: Search & redaction
-        summary: Where investigators search transcribed body-worn and in-car video, case notes and reports by what was said and seen, with redaction and disclosure tracked for court.
+        summary: Where investigators search transcribed body-worn and in-car video, case notes and reports by what was said and indexed in metadata, with redaction and disclosure tracked for court.
       - name: EMS Demand Planner
         icon: iot
         short: Ambulance deployment
@@ -650,19 +675,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -686,7 +711,7 @@ agent_usecases:
           - Which beats are running slowest against the standard right now?
           - How many calls are holding in queue and for how long?
           - Where is call-for-service demand concentrating this shift?
-          - How does dispatch-to-on-scene time break down into call-taking, dispatch and travel?
+          - How does call-received-to-on-scene time break down into call processing, dispatch or turnout and travel?
       - name: Crime Analysis Agent
         icon: genie
         summary: Explore incident patterns, hotspots and clearance across records and calls for service.
@@ -803,7 +828,7 @@ agent_usecases:
       - name: Evidence Search
         short: Video & case search
         icon: media
-        summary: Making hours of body-worn and in-car video, case notes and reports searchable by what was said and seen, with redaction and disclosure tracked so evidence reaches court on time.
+        summary: Making hours of body-worn and in-car video, case notes and reports searchable by what was said and indexed in metadata, with redaction and disclosure tracked so evidence reaches court on time.
         problem: Digital evidence piles up faster than anyone can review it, and finding the moment that matters means scrubbing hours of video by hand while disclosure deadlines run.
         who_benefits: Investigations
         how_built: Evidence metadata and transcripts are governed in Unity Catalog; AI Functions transcribe and summarise while AI Search finds the moment across the case, surfaced in the Evidence Finder.
@@ -820,7 +845,7 @@ agent_usecases:
         short: Plate reads & alerts
         icon: network
         summary: Turning ALPR reads and BOLOs into timely leads, matching plate reads against wanted and missing-person lists and pushing alerts to the field before the vehicle is gone.
-        problem: ALPR generates millions of reads that mostly sit unqueried, so a hit against a wanted or missing-person list arrives too late to act on, or never surfaces at all.
+        problem: ALPR reads and watch-list hits sit in systems that do not share context, so cross-system enrichment and follow-up on a wanted or missing-person lead can lag or fall between agencies.
         who_benefits: Investigations
         how_built: Plate reads land in Lakehouse//RT and match against governed watch-lists in Model Serving; hits push to the field through BOLO & Alerts with evidence linked in Genetec Clearance.
         components:
@@ -838,7 +863,7 @@ agent_usecases:
         summary: Bringing first-responder location, status and telemetry together over broadband so a supervisor sees a responder in trouble and moves backup before a check-in is missed.
         problem: Officer status lives on the radio and in the supervisor's head, so a responder in trouble is noticed when a check-in is missed rather than when the signals first turn.
         who_benefits: Patrol Ops
-        how_built: FirstNet location and telemetry feeds stream into Lakehouse//RT; models flag distress and isolation in Model Serving so supervisors move backup before a check-in is missed.
+        how_built: Responder endpoint status and AVL location events carried over FirstNet stream into Lakehouse//RT; models surface supervisor-facing risk indicators in Model Serving so supervisors move backup before a check-in is missed.
         components:
           - FirstNet Broadband
           - AVL Telemetry
@@ -940,7 +965,7 @@ citation_index:
   carbyne:
     title: Carbyne NG911 call handling
     url: https://carbyne.com/
-  centralsquare:
+  motorola-cad:
     title: Motorola PremierOne CAD
     url: https://www.motorolasolutions.com/en_us/products/command-center-software/public-safety-software/premierone/premierone-cad.html
   mark43:

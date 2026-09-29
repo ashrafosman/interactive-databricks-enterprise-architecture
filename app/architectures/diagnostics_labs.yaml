@@ -331,6 +331,36 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'HL7 v2'
+        icon: zbraces
+        fmt: 'HL7'
+        summary: 'HL7 version 2 messaging for orders and results between lab and clinical systems.'
+        spec_url: https://blog.hl7.org/what_is_hl7_and_introduction_to_products_fhir_cda_v2
+      - name: 'FHIR'
+        icon: zbraces
+        fmt: 'FHIR'
+        summary: 'HL7 FHIR REST/resources standard for modern interoperable lab and health data.'
+        spec_url: https://www.hl7.org/fhir/overview.html
+        spark_connector: 'dbignite'
+        spark_repo: https://github.com/databrickslabs/dbignite
+        databricks_resource: https://www.databricks.com/solutions/accelerators/fhir
+        source_systems:
+          - 'Epic'
+          - 'Health Gorilla'
+          - 'Rhapsody'
+      - name: 'CLSI LIS01'
+        icon: zbraces
+        fmt: 'LIS01'
+        summary: 'CLSI standard for low-level connectivity between lab instruments and information systems.'
+        spec_url: https://clsi.org/shop/standards/lis01/
+      - name: 'CLSI LIS02'
+        icon: zbraces
+        fmt: 'LIS02'
+        summary: 'CLSI message specification for transferring lab orders and results.'
+        spec_url: https://clsi.org/shop/standards/lis02/
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -531,7 +561,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Leadership and QC dashboards against serverless SQL with Unity Catalog permissions enforced end to end.
+        summary: Leadership and QC dashboards against SQL warehouses with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for turnaround and denial answers in the channel the lab already works in (Beta).
@@ -590,7 +620,7 @@ consumers:
         summary: Published, contracted result and utilization products discoverable in Unity Catalog Domains.
       - name: Sharing Recipients
         icon: share
-        summary: Hospitals, health plans and registries reading live tables with no copy and no egress duplication.
+        summary: Hospitals, health plans and registries accessing governed result and utilization products, reducing bespoke exports with recipient copies and transfer behavior dependent on the sharing mode.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -679,19 +709,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -788,8 +818,6 @@ agent_usecases:
           - DI Instrument Manager
           - AI/BI
         stories:
-          - title: Kythera Labs builds its business on Spark Declarative Pipelines
-            url: https://www.databricks.com/customers/kythera-labs
           - title: Databricks for Healthcare and Life Sciences
             url: https://www.databricks.com/solutions/industries/healthcare-and-life-sciences
       - name: Digital Pathology AI
@@ -817,7 +845,7 @@ agent_usecases:
         summary: Routine results released automatically against rules and prior-result deltas, so technologists spend their time on the cases that actually need a human.
         problem: Every result queues for manual verification even when it is normal and consistent with history, so technologist time is spent on the routine and the abnormal waits behind it.
         who_benefits: Lab Operations
-        how_built: Analyzer results flow through the middleware into the lakehouse; delta-check and autoverification models score each result in Model Serving so routine results release and only exceptions reach a technologist.
+        how_built: Analyzer results flow through the middleware into the lakehouse; automatic release follows laboratory-approved autoverification rules in the LIS and middleware, with delta-check and model outputs from Model Serving used under that same release policy so routine results release and only exceptions reach a technologist.
         components:
           - DI Instrument Manager
           - Analyzer Data
@@ -892,10 +920,10 @@ agent_usecases:
       - name: Critical Value Alerts
         short: Operations
         icon: stream
-        summary: Critical and life-threatening results detected and routed to the ordering clinician the moment they verify, with acknowledgement closing the loop.
+        summary: Verified critical-threshold results flagged for timely routing to the ordering clinician, with predictive deterioration surfaced as separate review flags and acknowledgement closing the loop.
         problem: Critical values depend on a technologist reaching a clinician by phone, so a life-threatening result can wait in a queue and read-back is hard to evidence.
         who_benefits: Lab Operations
-        how_built: Verified results stream through the interface engine into Lakehouse//RT; critical-value and early-deterioration models score in Model Serving and alerts route to the clinician over FHIR with acknowledgement tracked.
+        how_built: Verified results stream through the interface engine into Lakehouse//RT; critical-threshold breaches raise notifications while early-deterioration models in Model Serving surface separate review flags; results deliver over FHIR to a routing target with an explicit acknowledgement and escalation workflow rather than guaranteed instant delivery.
         components:
           - Rhapsody Engine
           - Lakehouse//RT

@@ -1,5 +1,5 @@
 name: Airlines
-description: 'Passenger and cargo operations: reservations and revenue management, network and crew planning, airport turnaround, and line maintenance.'
+description: 'For an airline: reservations and revenue management, network and crew planning, airport turnaround and line maintenance across the passenger operation.'
 sources:
   - name: Reservations & Revenue
     icon: erp
@@ -306,6 +306,29 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'PNR'
+        icon: zbraces
+        fmt: 'PNR'
+        summary: 'Passenger Name Record, the reservation system-of-record for itineraries, fares and passenger data.'
+        spec_url: https://www.iata.org/en/programs/passenger/
+      - name: 'IATA NDC'
+        icon: zbraces
+        fmt: 'NDC'
+        summary: 'New Distribution Capability XML for rich, retail-style airline offers and orders across channels.'
+        spec_url: https://www.iata.org/en/programs/airline-distribution/retailing/ndc/
+      - name: 'AIDX'
+        icon: zbraces
+        fmt: 'AIDX'
+        summary: 'IATA Aviation Information Data Exchange for real-time flight status and movement messaging.'
+        spec_url: https://www.iata.org/en/publications/info-data-exchange/
+      - name: 'SSIM'
+        icon: zbraces
+        fmt: 'SSIM'
+        summary: 'IATA Standard Schedules Information Manual format for exchanging flight schedules.'
+        spec_url: https://www.iata.org/en/publications/manuals/standard-schedules-information
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -344,7 +367,7 @@ cloud_integrations:
             interval: Continuous (near real-time)
       - name: IATA NDC / ONE Order APIs
         icon: api
-        summary: Offer and order APIs replacing the filed-fare and coupon model, consumed inbound for partner shopping traffic. Managed ELT connectors and existing Kafka or MSK topics carrying movement, baggage and sensor events land here too, and are drawn generically on the reference board.
+        summary: Offer and order APIs replacing the filed-fare and coupon model, consumed inbound for partner shopping traffic.
         citations:
           - ndc
         category: Airline Retailing APIs (NDC / ONE Order)
@@ -381,7 +404,7 @@ pipelines:
           - Network & Fleet Planning
           - IROPS Recovery
           - Continuous Pricing & NDC
-          - Fuel Burn & Tankering
+          - Unified Ops Control
       - name: Revenue & Pricing
         mark: Model Serving
         summary: Revenue management analysts setting bid prices and fare class availability, pricing teams filing fares against ATPCO rules and the NDC offer catalogue, and the loyalty and ancillary team merchandising seats, bags and partner earn.
@@ -403,8 +426,9 @@ pipelines:
             - tier economics, partner earn and the merchandising of seats, bags and lounge access.
         ucs:
           - Continuous Pricing & NDC
-          - Cargo Yield
-          - Loyalty & Ancillary
+          - Ancillary Merchandising
+          - Loyalty & FFP
+          - Passenger 360
       - name: Network Planning
         mark: AI/BI
         summary: Which routes are flown, at what frequency and with which aircraft, season by season, against slots and maintenance windows.
@@ -443,8 +467,7 @@ pipelines:
           - IROPS Recovery
           - Turnaround & OTP
           - Crew Pairing & Rostering
-          - Baggage Mishandling
-          - Fuel Burn & Tankering
+          - Unified Ops Control
       - name: Engineering & MRO
         mark: Lakeflow
         summary: Engineering and maintenance planning on predicted removals, tail health and AMOS work orders raised against the aircraft the airline already flies.
@@ -534,7 +557,7 @@ consumers:
     tiles:
       - name: Tableau / Qlik / ThoughtSpot
         icon: chart
-        summary: External BI against serverless SQL warehouses, with Unity Catalog permissions enforced end to end.
+        summary: External BI against SQL warehouses, with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for Unity Catalog-governed answers from the lakehouse, and IROPS and turnaround updates in the channel the operation already works in (Beta).
@@ -592,7 +615,7 @@ consumers:
         summary: Published, contracted products discoverable in Unity Catalog Domains and shared over OpenSharing.
       - name: Sharing Recipients
         icon: share
-        summary: Lessors, maintenance partners and alliance members reading live tables with no copy and no egress duplication.
+        summary: Lessors, maintenance partners and alliance members reading live tables, reducing separately maintained extracts and duplication, with recipient access and reuse scoped by agreements.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -680,26 +703,26 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         short: 3rd-party harness
         icon: code
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         short: 3rd-party harness
         icon: code
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         short: Cursor, IDEs, frameworks
         icon: mcp
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
     span: 3
     cols: 2
     tiles:
-      - name: Network & Revenue Agent
+      - name: Network Planning Agent
         icon: genie
         summary: Ask about route profitability, yield and load factor in plain language across the commercial book.
         feeds:
@@ -717,7 +740,7 @@ agent_usecases:
           - Which fare classes are we spilling demand in?
           - What is yield by cabin on our top ten routes?
           - Where is ancillary revenue per passenger growing fastest?
-      - name: Operations & OTP Agent
+      - name: Operations Control Agent
         icon: genie
         summary: Explore on-time performance, delay causes and turnaround compliance across the operation.
         feeds:
@@ -735,7 +758,7 @@ agent_usecases:
           - Which stations have the worst turnaround compliance this month?
           - How many flights missed target off-block yesterday, and why?
           - Which rotations are most exposed to reactionary delay?
-      - name: Engineering & Fleet Reliability Agent
+      - name: Fleet Reliability Agent
         icon: genie
         summary: Answer tail-health, defect and predicted-removal questions across the fleet.
         feeds:
@@ -751,7 +774,7 @@ agent_usecases:
           - How many AOG events did we have this month and on which fleet?
           - Which aircraft show rising engine condition-monitoring trends?
           - What is component reliability by part number versus target?
-      - name: Passenger & Loyalty Agent
+      - name: Passenger Experience Agent
         icon: genie
         summary: Ask about the passenger journey, disruption impact and loyalty value across channels.
         feeds:
@@ -828,10 +851,10 @@ agent_usecases:
       - name: Crew Pairing & Rostering
         short: Planning
         icon: people
-        summary: Building legal, low-cost pairings and rosters under flight time limitations, and repairing them when the operation moves.
-        problem: Legal, low-cost pairings must hold under flight-time limitations and then be repaired the moment the operation moves, without ever tipping a crew into illegality.
+        summary: AIMS generates and validates legality-constrained pairings and rosters under flight time limitations, while lakehouse models flag duty risk and support authorized roster repair when the operation moves.
+        problem: Legal, low-cost pairings must hold under flight-time limitations and then be repaired the moment the operation moves, keeping crews within legality.
         who_benefits: Operations Control
-        how_built: AIMS pairing and roster state is conformed and served in Lakehouse//RT; disruption models flag crews nearing duty limits so rosters are repaired before they break.
+        how_built: AIMS generates and validates pairings and roster state, conformed and served in Lakehouse//RT; disruption models identify crews nearing duty limits and support authorized roster repair before rosters break.
         components:
           - AIMS Crew Management
           - Lakehouse//RT
@@ -858,21 +881,19 @@ agent_usecases:
             url: https://www.databricks.com/blog/accelerating-innovation-jetblue-using-databricks
           - title: Predictive maintenance on the Databricks Lakehouse
             url: https://www.databricks.com/blog/what-is-predictive-maintenance
-      - name: Fuel Burn & Tankering
-        short: Cost & emissions
-        icon: chart
-        summary: Route, load and tankering decisions that cut fuel burn and the emissions reported under CORSIA and EU ETS.
-        problem: Fuel is the largest controllable cost and the biggest emissions line. Tankering and route calls made without load and price data leave money and CORSIA exposure on the table.
-        who_benefits: Operations Control
-        how_built: Route, load and QAR burn data are conformed to Gold; tankering and burn recommendations are scored in Model Serving and reconciled against CORSIA and EU ETS reporting.
+      - name: Passenger 360
+        short: Customer 360
+        icon: custlake
+        summary: PNR, loyalty, clickstream and disruption history unified into one passenger view.
+        problem: A passenger's booking, loyalty, digital and disruption history sit in separate systems, so the airline treats a top-tier flyer like a stranger and no team can see the full relationship across the journey.
+        who_benefits: Revenue & Pricing
+        how_built: PNR data from Amadeus Altéa PSS, Loyalty & FFP and Web & App Clickstream are unified in CustomerLake under Unity Catalog, giving one governed passenger view every channel and the OCC read.
         components:
-          - Aircraft Sensor & QAR
-          - Model Serving
-          - AI/BI
-          - Lakeflow
-        stories:
-          - title: JetBlue improves fuel efficiency with Blue Sky
-            url: https://www.databricks.com/customers/jetblue-video
+          - CustomerLake
+          - Amadeus Altéa PSS
+          - Loyalty & FFP
+          - Web & App Clickstream
+          - Unity Catalog
       - name: Turnaround & OTP
         short: Punctuality
         icon: stream
@@ -888,47 +909,54 @@ agent_usecases:
         stories:
           - title: JetBlue Blue Sky operational digital twin
             url: https://www.databricks.com/customers/jetblue-video
-      - name: Baggage Mishandling
-        short: Service
-        icon: partner
-        summary: Predicting which connections will lose a bag from the connection time, the stand pair and the handler, and intervening before the flight departs.
-        problem: A bag lost at a tight connection is a service failure and a cost. The connections that will fail are predictable from connection time, stand pair and handler, if anyone scores them in time.
+      - name: Unified Ops Control
+        short: Operations
+        icon: gauge
+        summary: One real-time operating picture across flights, crew, aircraft and passengers for the OCC.
+        problem: The OCC watches flights, crew, aircraft and passengers on separate screens fed by separate systems, so no one sees the whole operation at once and a small delay becomes a cascade before it is understood.
         who_benefits: Operations Control
-        how_built: WorldTracer, movement and stand data are joined in the lakehouse; a risk model scores each connection so at-risk bags are intervened on before the flight departs.
+        how_built: Movement, crew, maintenance and booking feeds stream into Lakehouse//RT and are conformed to certified AI/BI Metric Views, so the OCC Recovery Cockpit shows one live common operating picture across the operation.
         components:
-          - SITA WorldTracer
-          - Model Serving
+          - OCC Recovery Cockpit
           - Lakehouse//RT
-          - Lakeflow
-      - name: Loyalty & Ancillary
-        short: Personalisation
-        icon: custlake
-        summary: Tier economics, partner earn and the merchandising of seats, bags and lounge access, scored per passenger against the profile the loyalty estate already holds.
-        problem: Seats, bags and lounge access are merchandised the same to everyone, while the profile needed to personalise them already exists behind the loyalty estate, unused.
-        who_benefits: Revenue & Pricing
-        how_built: Loyalty accruals and clickstream are activated through CustomerLake without a separate CDP; ancillary offers are scored per passenger and served into the booking path.
-        components:
-          - CustomerLake
-          - Model Serving
-          - Loyalty & FFP
           - AI/BI
+          - A-CDM Message Bus
+          - ACARS / OOOI Messages
+        stories:
+          - title: JetBlue Blue Sky operational digital twin
+            url: https://www.databricks.com/blog/accelerating-innovation-jetblue-using-databricks
+      - name: Ancillary Merchandising
+        short: Retailing
+        icon: product
+        summary: Seats, bags and lounge access merchandised per passenger against the loyalty profile.
+        problem: Seats, bags and lounge access are offered the same to everyone, so the airline leaves ancillary revenue on the table and the profile needed to personalise the offer sits unused behind the loyalty estate.
+        who_benefits: Revenue & Pricing
+        how_built: Loyalty and Web & App Clickstream signals feed offer-propensity models in Model Serving with features in Feature Store, and ranked ancillary offers are served through the NDC Offer & Order API into the booking path.
+        components:
+          - Model Serving
+          - Feature Store
+          - Loyalty & FFP
+          - NDC Offer & Order API
+          - CustomerLake
         stories:
           - title: Eurowings personalises search with AI Search and Model Serving
             url: https://www.databricks.com/customers/eurowings
+      - name: Loyalty & FFP
+        short: Loyalty
+        icon: custlake
+        summary: Tier economics, partner earn and redemption managed against member value across the programme.
+        problem: Members drift toward downgrade or churn between slow batch reviews, and points liability and partner-earn economics are hard to see until the balance sheet catches up.
+        who_benefits: Revenue & Pricing
+        how_built: Frequent-flyer accruals, redemptions and tier movement from Loyalty & FFP are unified in CustomerLake, and tier-migration and churn models score in Model Serving on certified AI/BI views.
+        components:
+          - CustomerLake
+          - Loyalty & FFP
+          - Model Serving
+          - MLflow
+          - AI/BI
+        stories:
           - title: How AI is redefining travel and hospitality
             url: https://www.databricks.com/blog/booking-bon-voyage-how-ai-redefining-travel-hospitality-experience
-      - name: Cargo Yield
-        short: Freight revenue
-        icon: product
-        summary: Capacity, air waybill and ULD build-up data joined to the passenger schedule, so belly capacity is sold at the right price instead of released late.
-        problem: Belly capacity is perishable. Sold late or at the wrong price it is lost revenue the passenger schedule already paid to fly.
-        who_benefits: Revenue & Pricing
-        how_built: Cargospot air waybill and ULD build-up data are joined to the passenger schedule in the lakehouse; capacity and price are recommended through Model Serving.
-        components:
-          - CHAMP Cargospot
-          - Model Serving
-          - AI/BI
-          - Lakeflow
 medallion:
   Bronze:
     short: Raw operational feeds
@@ -948,19 +976,19 @@ citation_index:
     url: https://www.sabre.com/products/suites/network-planning-and-optimization/
   pros-rm:
     title: PROS revenue management for airlines
-    url: https://pros.com/products/travel/revenue-management/
+    url: https://www.pros.com/
   atpco:
     title: ATPCO fare and rule filing
     url: https://www.atpco.net/
   netline:
     title: Lufthansa Systems NetLine/Sched
-    url: https://www.lhsystems.com/product/netline-sched
+    url: https://www.lhsystems.com/
   aims:
     title: AIMS crew management
     url: https://aims.aero/
   jeppesen:
     title: Jeppesen crew and operations
-    url: https://www.jeppesen.com/crew-solutions
+    url: https://www.jeppesen.com/
   aodb:
     title: Airport Operational Database, A-CDM
     url: https://www.eurocontrol.int/concept/airport-collaborative-decision-making
@@ -972,13 +1000,13 @@ citation_index:
     url: https://www.faa.gov/air_traffic/technology/adsb
   worldtracer:
     title: SITA WorldTracer baggage tracing
-    url: https://www.sita.aero/solutions/sita-at-airports/baggage-solutions/worldtracer/
+    url: https://www.sita.aero/
   amos:
     title: Swiss-AS AMOS MRO
-    url: https://www.swiss-as.com/amos
+    url: https://www.swiss-as.com/
   cargospot:
     title: CHAMP Cargospot
-    url: https://www.champ.aero/solutions/cargospot
+    url: https://www.champ.aero/
   iata-bsp:
     title: IATA Billing and Settlement Plan
     url: https://www.iata.org/en/services/finance/bsp/

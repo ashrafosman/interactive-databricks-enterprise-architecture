@@ -1,5 +1,5 @@
 name: Shipping & Ports
-description: 'Port and terminal operations: vessel scheduling, berth and crane allocation, cargo handling, customs clearance, and landside logistics across container and bulk terminals.'
+description: 'For port and terminal operators, container-terminal-led with bulk-terminal adaptations: vessel and berth planning, throughput forecasting, crane and equipment maintenance, yard and gate flow, safety and incident detection, and tariff revenue.'
 sources:
   - name: Terminal Operating
     icon: erp
@@ -243,6 +243,29 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'EDIFACT Maritime'
+        icon: zbraces
+        fmt: 'EDI'
+        summary: 'UN/EDIFACT maritime messages for container, manifest and port operations.'
+        spec_url: https://unece.org/trade/uncefact/introducing-unedifact
+      - name: 'DCSA eBL'
+        icon: zbraces
+        fmt: 'eBL'
+        summary: 'Digital Container Shipping Association electronic Bill of Lading standard.'
+        spec_url: https://dcsa.org/standards/ebill-of-lading
+      - name: 'DCSA Track & Trace'
+        icon: zbraces
+        fmt: 'T&T'
+        summary: 'DCSA standard for interoperable container track-and-trace events.'
+        spec_url: https://dcsa.org/standards/track-and-trace
+      - name: 'Bill of Lading'
+        icon: zbraces
+        fmt: 'BOL'
+        summary: 'DCSA standardised electronic bill of lading data model.'
+        spec_url: https://dcsa.org/standards/ebill-of-lading
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -267,11 +290,11 @@ cloud_integrations:
             interval: Continuous message flow
       - name: Port Authority AIS Feed
         icon: api
-        summary: Real-time berth occupancy and pilot boarding events from the port authority.
+        summary: AIS-derived berth occupancy estimates from the port authority, distinct from PCS pilot-order and port-call events.
         citations:
           - pcs
         category: Port Authority Data Feed
-        what_it_is: Provides real-time berth occupancy and pilot-boarding events from the port authority, aligning the terminal to harbour-wide movement.
+        what_it_is: Provides AIS-derived berth occupancy estimates from the port authority; authority-confirmed berth and pilot events are supplied separately through PCS and port-call records.
         who_uses_it: Terminal Operations, Harbour Master and Berth Planners.
         data_out:
           stream:
@@ -316,10 +339,8 @@ pipelines:
           - name: Harbour Master
             cares: vessel safety, berth allocation and traffic through the approach channel.
         ucs:
-          - Berth Productivity
-          - Tariff & Storage Revenue
-          - Vessel ETA Reliability
-          - Environmental Reporting
+          - Demand Forecasting
+          - Distribution & Logistics Optimization
       - name: Terminal Operations
         mark: Lakehouse//RT
         summary: Berth planners and shift managers on crane allocation, yard density and vessel cut-off, defending crane moves per hour on the stow plan.
@@ -336,10 +357,9 @@ pipelines:
           - name: Yard Controller
             cares: slot density, rehandles and equipment balance across the stacks.
         ucs:
-          - Berth Productivity
-          - Crane Sequencing
-          - Vessel ETA Reliability
-          - Container Dwell
+          - Predictive Maintenance & Asset Health
+          - Workforce Safety
+          - Inventory Optimization
       - name: Commercial & Tariffs
         mark: AI/BI
         summary: Tariff managers on contract compliance, rebate accuracy and storage revenue leakage where free-dwell days slip past the billed clock.
@@ -356,9 +376,9 @@ pipelines:
           - name: Revenue Assurance
             cares: billed moves reconciled to the actual crane and gate events.
         ucs:
-          - Tariff & Storage Revenue
-          - Container Dwell
-          - Berth Productivity
+          - Distribution & Logistics Optimization
+          - Order Processing Automation
+          - Demand Forecasting
       - name: Landside Logistics
         mark: Model Serving
         summary: Truck appointment and rail planners on gate queues and intermodal handoff, matching slots to yard density before demurrage accrues.
@@ -375,9 +395,9 @@ pipelines:
           - name: Drayage Coordinator
             cares: carrier slot compliance and container availability at pickup.
         ucs:
-          - Gate Turnaround
-          - Container Dwell
-          - Intermodal Rail Load
+          - Distribution & Logistics Optimization
+          - Inventory Optimization
+          - Incident & Field Service Assistant
       - name: Customs & Security
         mark: Lakeflow
         summary: Compliance teams on customs holds, inspection outcomes and dangerous-goods declarations validated against stow position and segregation.
@@ -394,9 +414,9 @@ pipelines:
           - name: Port Security
             cares: ISPS access control, seals and screening across the terminal perimeter.
         ucs:
-          - Customs Clearance
-          - Dangerous Goods
-          - Container Dwell
+          - Incident & Field Service Assistant
+          - Workforce Safety
+          - Inventory Optimization
   - name: Technical
     icon: code
     tiles:
@@ -418,10 +438,9 @@ pipelines:
           - name: Platform SRE
             cares: the pager when a dwell or crane table the berth desk reads breaks.
         ucs:
-          - Berth Productivity
-          - Container Dwell
-          - Vessel ETA Reliability
-          - Customs Clearance
+          - Inventory Optimization
+          - Demand Forecasting
+          - Distribution & Logistics Optimization
       - name: Data Scientists
         mark: MLflow
         summary: Dwell-prediction, vessel-ETA, crane-sequencing and gate-turnaround models, and whether they still hold as schedules and yard density shift.
@@ -440,10 +459,9 @@ pipelines:
           - name: MLOps Engineer
             cares: feature parity and drift on the ETA and dwell models in production.
         ucs:
-          - Container Dwell
-          - Vessel ETA Reliability
-          - Crane Sequencing
-          - Gate Turnaround
+          - Demand Forecasting
+          - Predictive Maintenance & Asset Health
+          - Inventory Optimization
       - name: App Developers
         mark: Apps
         summary: Ship the Berth Planner, Gate Optimizer and Yard Density apps terminal teams work in, hosted next to governed TOS and AIS data.
@@ -462,9 +480,9 @@ pipelines:
           - name: Agent Developer
             cares: agents that draft crane sequences against governed terminal tools.
         ucs:
-          - Berth Productivity
-          - Gate Turnaround
-          - Container Dwell
+          - Distribution & Logistics Optimization
+          - Predictive Maintenance & Asset Health
+          - Incident & Field Service Assistant
 consumers:
   - name: BI & Productivity
     icon: chart
@@ -472,7 +490,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Terminal KPI dashboards on serverless SQL with Unity Catalog permissions.
+        summary: Terminal KPI dashboards on SQL warehouses with Unity Catalog permissions.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for berth and dwell questions in the operations channel.
@@ -543,7 +561,7 @@ consumers:
       - name: Customs Hold Console
         icon: gavel
         short: Clearance status
-        summary: Declaration holds, inspections and release milestones in one operations view.
+        summary: Declaration holds, inspections, release milestones and security and dangerous-goods incident triage in one operations view.
   - name: AI/BI Dashboards
     icon: aibi
     tiles:
@@ -562,7 +580,7 @@ consumers:
           - Berth Planner
       - name: Container Dwell & Demurrage
         icon: aibi
-        summary: Dwell days, demurrage exposure and yard density across the terminal.
+        summary: Dwell days, demurrage exposure and yard density across the terminal, with tonnage and stockpile measures as bulk adaptations.
         kpis:
           - Container dwell
           - Demurrage exposure
@@ -613,50 +631,52 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
     span: 3
     cols: 2
     tiles:
-      - name: Berth & Vessel Operations Agent
+      - name: Berth & Vessel Agent
         icon: genie
-        summary: Ask about crane productivity, berth idle time and vessel arrival reliability.
+        summary: Plan crane productivity, berth idle time, vessel arrival reliability and quay safety.
         feeds:
           - Navis N4 TOS
           - Kalmar Insight
           - AIS Vessel Tracking
+          - SICK Yard Automation
           - Throughput, dwell, crane rate
         teams:
           - Terminal Operations
           - Berth Planner
           - Shift Manager
         questions:
+          - Which approaching vessels have the least reliable declared ETA versus AIS?
           - What were crane moves per hour by vessel and berth on the last shift?
-          - How much berth idle time did we lose to plan versus execution today?
-          - Which approaching vessels have the least reliable declared ETA?
-          - What is the anchorage queue and expected berthing order right now?
-          - Which cranes show the highest fuel burn per move this week?
-      - name: Container Dwell & Yard Agent
+          - Which cranes and yard equipment are trending toward failure this week?
+          - What container and vessel volume should we forecast by service next week?
+          - Which equipment-proximity near-misses or high-risk zones were flagged on the quay this shift?
+      - name: Dwell & Yard Agent
         icon: genie
-        summary: Explore dwell days, demurrage exposure and yard density across the stacks.
+        summary: Manage dwell days, yard density, customs release and terminal storage demurrage exposure across the stacks.
         feeds:
           - CyberLogitec OPUS
           - Identec RFID Gates
           - Descartes Customs
+          - INTTRA eBL
           - Conformed vessel, visit, unit
         teams:
           - Landside Logistics
@@ -664,13 +684,13 @@ agent_usecases:
           - Terminal Operations
         questions:
           - Which containers are about to breach free-dwell and accrue demurrage?
-          - What is average container dwell by line and cargo type this month?
           - Which yard blocks are most congested and driving rehandles?
-          - How many units are held by customs and blocking their slots?
-          - What is our demurrage exposure by customer right now?
-      - name: Gate & Landside Flow Agent
+          - How many units are held by customs and blocking their slots for release?
+          - How many bookings, bills of lading and customs releases cleared automatically versus held for manual document rework?
+          - If volume grows 15% next quarter, where does yard capacity break first?
+      - name: Gate & Rail Agent
         icon: genie
-        summary: Answer truck turnaround, gate queue and intermodal handoff questions.
+        summary: Flow truck turnaround, gate queues, intermodal handoffs and field incidents across landside.
         feeds:
           - Identec RFID Gates
           - SAP TM for Ports
@@ -685,10 +705,11 @@ agent_usecases:
           - Which stage of the gate process is the current bottleneck?
           - How does appointment compliance compare to actual arrivals?
           - Which rail consists are at risk of going out light this window?
-          - What is drayage carrier slot compliance this week?
-      - name: Tariff & Revenue Assurance Agent
+          - What open gate or equipment incidents need a field-service response now?
+          - Which TOS access or gate-automation anomalies suggest a compromised account or spoofed gate transaction this shift?
+      - name: Tariff & Revenue Agent
         icon: genie
-        summary: Ask about handling and storage revenue, rebates and billed-versus-actual moves.
+        summary: Price tariffs and storage, and assure handling revenue, rebates and billed-versus-actual moves.
         feeds:
           - Jade Master Terminal
           - Tideworks Mainsail
@@ -699,183 +720,200 @@ agent_usecases:
           - Tariff Manager
           - Revenue Assurance
         questions:
+          - Which lanes and services should we reprice given current demand and yard congestion?
+          - Which customers exceeded free dwell and should move to a higher storage rate?
           - Where do billed moves diverge from actual crane and gate events?
-          - Which customers exceeded free dwell but were not billed storage?
-          - How much storage and demurrage revenue did we bill this month?
-          - Which rebate tiers are customers close to triggering?
           - What is revenue per vessel call by line this quarter?
+          - Which rebate tiers are customers close to triggering?
   - name: Business Use Cases
     icon: ztarget
     span: 8
     cols: 5
     tiles:
-      - name: Berth Productivity
-        short: Vessel ops
-        icon: gauge
-        summary: Crane moves per hour and berth idle time attributed to plan versus execution.
-        problem: Crane rate and berth idle time live in TOS and crane logs separately, so a shift that loses productivity to plan versus execution is only reconstructed next day, after the vessel sailed.
-        who_benefits: Terminal Operations
-        how_built: Navis N4 TOS moves and Kalmar Insight equipment telemetry land through Lakeflow and conform on Delta Lake, so berth productivity is attributed to plan versus execution and read in the Berth Planner.
+      - name: Distribution & Logistics Optimization
+        short: Gate & rail flow
+        icon: stream
+        summary: Truck turnaround decomposed by stage and rail load plans matched to discharge, so gate and ramp keep cargo flowing.
+        problem: Truck visit time blends queueing, OCR failures and yard handoff while rail plans are built before discharge finishes, so drivers wait, appointment capacity is guessed and wagons go out light.
+        who_benefits: Landside Logistics
+        how_built: Identec gate OCR, TOS discharge and SAP TM rail orders land through Lakeflow and conform on Delta Lake, so the Gate Optimizer matches appointment slots and rail load plans to real turnaround and actual discharge.
         components:
-          - Berth Planner
+          - Gate Optimizer
+          - Identec RFID Gates
+          - SAP TM for Ports
           - Navis N4 TOS
-          - Kalmar Insight
           - Lakeflow
           - Delta Lake
-          - AI/BI
         stories:
-          - title: PTP gains real-time operational insights with Databricks Lakehouse
-            url: https://www.tigeranalytics.com/perspectives/case-study/delivering-real-time-operational-insights-for-ptp-with-databricks-lakehouse/
-          - title: From raw shipping data to real-time predictions on Databricks
-            url: https://community.databricks.com/t5/technical-blog/from-raw-shipping-data-to-real-time-predictions-in-one-platform/ba-p/153713
-      - name: Container Dwell
-        short: Yard ops
+          - title: "Solution Accelerator: Scalable Route Generation With Databricks and OSRM"
+            url: https://www.databricks.com/blog/solution-accelerator-scalable-route-generation-databricks-and-osrm
+      - name: Predictive Maintenance & Asset Health
+        stories:
+          - title: What Separates the Winners and Losers in the Connected Vehicle Data Revolution
+            url: https://www.databricks.com/blog/what-separates-winners-and-losers-connected-vehicle-data-revolution
+          - title: Predictive maintenance on the Databricks Lakehouse
+            url: https://www.databricks.com/blog/what-is-predictive-maintenance
+        short: Crane asset health
+        icon: iot
+        summary: STS and RTG crane and yard-equipment failures predicted from telemetry before they stop a berth.
+        problem: Cranes and yard equipment fail mid-shift with no warning, so a berth stalls waiting on a repair and the vibration, fuel and cycle telemetry that would have flagged the fault sits unused in the equipment system.
+        who_benefits: Terminal Operations
+        how_built: Kalmar Insight crane telemetry and SICK yard-automation signals stream into Lakehouse//RT and conform on Delta Lake, and remaining-life and anomaly models tracked in MLflow score in Model Serving so failures become planned maintenance windows.
+        components:
+          - Kalmar Insight
+          - SICK Yard Automation
+          - Lakehouse//RT
+          - Model Serving
+          - MLflow
+          - Delta Lake
+      - name: Dynamic Pricing
+        stories:
+          - title: Data and AI in action across the energy industry
+            url: https://www.databricks.com/blog/powering-future-data-and-ai-action-across-energy-industry
+        short: Tariff pricing
+        icon: market
+        summary: Handling, storage and demurrage tariffs priced to live demand, yard congestion and free-dwell risk rather than a static rate card.
+        problem: Tariffs and storage rates are set once and left, so peak-season congestion and slack periods are billed the same and the terminal leaves revenue and yard capacity on the table.
+        who_benefits: Commercial & Tariffs
+        how_built: Navis N4 TOS move history and its storage, handling and demurrage billing and rating records conform on Delta Lake, and demand- and congestion-elastic pricing models tracked in MLflow score in Model Serving so recommended tariffs surface on the Tariff & Storage Revenue view in AI/BI for the commercial desk.
+        components:
+          - Navis N4 TOS
+          - Model Serving
+          - MLflow
+          - AI/BI
+          - Delta Lake
+      - name: Cyber Threat Monitoring & Detection
+        short: Terminal OT security
+        icon: gavel
+        summary: Anomalies across TOS access, gate automation and port-community messaging correlated to catch OT and IT threats to terminal operations.
+        problem: TOS logins, gate-automation controllers and PCS message flows are monitored in separate tools, so a compromised account or a spoofed gate transaction is only pieced together after the disruption.
+        who_benefits: Customs & Security
+        how_built: Navis N4 TOS access events, Identec gate transactions and Port Community System messages land through Lakeflow and conform under Unity Catalog, and anomaly models in Model Serving raise threats for the security team with Mosaic AI drafting the triage.
+        components:
+          - Navis N4 TOS
+          - Identec RFID Gates
+          - Port Community System
+          - Lakeflow
+          - Model Serving
+          - Mosaic AI
+        stories:
+          - title: "The Rosetta stone of CPS: Claroty's AI-powered library"
+            url: https://www.databricks.com/blog/rosetta-stone-cps-clarotys-ai-powered-library
+      - name: Demand Forecasting
+        stories:
+          - title: Part-level demand forecasting Solution Accelerator
+            url: https://github.com/databricks-industry-solutions/parts-demand-forecasting
+          - title: Databricks for Energy
+            url: https://www.databricks.com/solutions/industries/energy
+        short: Throughput forecast
+        icon: chart
+        summary: Container and vessel volume forecast by week and service so berths, labour and yard are sized to real demand.
+        problem: Throughput is planned from last year and carrier nominations that keep changing, so labour, yard space and equipment are sized to a number that is already wrong by the time the vessels arrive.
+        who_benefits: Port Director Office
+        how_built: TOS move history and the federated carrier schedule marts conform on Delta Lake, seasonality and service features feed volume models tracked in MLflow, and forecast throughput surfaces by service in AI/BI.
+        components:
+          - Navis N4 TOS
+          - Carrier Schedule Marts
+          - Feature Store
+          - Model Serving
+          - MLflow
+          - AI/BI
+      - name: Workforce Safety
+        stories:
+          - title: StrongArm Tech cuts workplace injuries with IoT and ML on Databricks
+            url: https://www.databricks.com/customers/strongarm
+        short: Quay & yard safety
+        icon: people
+        summary: Equipment-proximity and near-miss risk in shared quay and yard zones flagged from equipment position and gate movement for supervisor review.
+        problem: Interactions in shared equipment zones on the quay and in the yard are reviewed after a near-miss, while the equipment-position and gate-movement data that would flag congestion and unsafe proximity sit unaggregated across yard-automation, crane and gate sensors.
+        who_benefits: Terminal Operations
+        how_built: SICK yard-automation equipment position, Kalmar crane and equipment telemetry and Identec gate events conform on Delta Lake, and proximity and near-miss models tracked in MLflow score in Model Serving so unsafe equipment interactions and high-risk zones are flagged in AI/BI for supervisor action.
+        components:
+          - SICK Yard Automation
+          - Identec RFID Gates
+          - Kalmar Insight
+          - Model Serving
+          - MLflow
+          - AI/BI
+      - name: Inventory Optimization
+        short: Yard & dwell
         icon: db
-        summary: Dwell days and demurrage exposure predicted before free time expires.
+        summary: Dwell days, demurrage exposure and yard density predicted so operators clear boxes and balance stacks before free time expires.
         problem: Free-dwell clocks tick across thousands of boxes at once, so by the time a spreadsheet flags the units about to breach, demurrage has accrued and the yard is congested with stale containers.
         who_benefits: Landside Logistics
-        how_built: Gate, TOS and customs events feed dwell features scored in Model Serving, and predicted breaches surface in the Yard Density Map so operators clear boxes before free time expires.
+        how_built: Gate, TOS and customs events feed dwell features scored in Model Serving, and predicted breaches and yard congestion surface in the Yard Density Map so operators clear boxes and rebalance stacks before free time expires.
         components:
           - Yard Density Map
           - Model Serving
           - Identec RFID Gates
-          - Descartes Customs
+          - CyberLogitec OPUS
           - Feature Store
           - Delta Lake
         stories:
           - title: Kotahi improves container movement visibility with Azure Databricks
             url: https://www.databricks.com/customers/kotahi
-      - name: Gate Turnaround
-        short: Landside
-        icon: stream
-        summary: Truck visit duration decomposed by queue, OCR and yard handoff.
-        problem: Truck visit time blends queueing, OCR read failures and yard handoff delays, but the causes sit buried in gate and TOS logs, so drivers wait and appointment capacity is set by rule of thumb.
-        who_benefits: Landside Logistics
-        how_built: Identec gate OCR and TOS handoff events land through Lakeflow and are decomposed on Delta Lake, so the Gate Optimizer matches appointment slots to real turnaround by queue, OCR and yard stage.
-        components:
-          - Gate Optimizer
-          - Identec RFID Gates
-          - Navis N4 TOS
-          - Lakeflow
-          - Delta Lake
-          - AI/BI
-      - name: Crane Sequencing
-        short: Equipment
-        icon: iot
-        summary: Crane work lists optimised for twin-lift and minimum rehandle.
-        problem: Crane work lists are built by hand against the stow plan, so twin-lift chances are missed and avoidable rehandles pile up, dragging moves per hour down when the berth window is tightest.
-        who_benefits: Terminal Operations
-        how_built: Stow, yard-slot and crane telemetry are conformed on Delta Lake and optimised with Model Serving, and the sequence is written back to the Navis N4 TOS dispatch list for the gang to work.
-        components:
-          - Berth Planner
-          - Navis N4 TOS
-          - Kalmar Insight
-          - Model Serving
-          - Delta Lake
-          - Apache Spark
-      - name: Vessel ETA Reliability
-        short: Planning
-        icon: globe
-        summary: AIS-derived ETA accuracy scored against declared schedules.
-        problem: Carrier-declared ETAs drift by hours against what AIS actually shows, so berths and gangs are planned to a schedule already wrong, and the terminal absorbs the idle time or the scramble.
-        who_benefits: Terminal Operations
-        how_built: AIS Vessel Tracking and MarineTraffic history feed ETA models tracked in MLflow and scored in Model Serving, so the Berth Planner ranks declared schedules against a live AIS-derived arrival.
-        components:
-          - Berth Planner
-          - AIS Vessel Tracking
-          - MarineTraffic API
-          - Model Serving
-          - MLflow
-          - Lakehouse//RT
-        stories:
-          - title: From raw shipping data to real-time predictions on Databricks
-            url: https://community.databricks.com/t5/technical-blog/from-raw-shipping-data-to-real-time-predictions-in-one-platform/ba-p/153713
-      - name: Customs Clearance
-        short: Compliance
-        icon: gavel
-        summary: Pre-arrival screening and hold resolution before cargo lands.
-        problem: Declarations, holds and inspections arrive from brokers and the single window on their own clocks, so a box can reach the quay still held and the desk learns only when discharge stalls.
+      - name: Order Processing Automation
+        short: Booking & release
+        icon: api
+        summary: Bookings, bills of lading and container release orders validated and processed automatically so documentation stops gating cargo.
+        problem: Bookings, house bills and release instructions arrive across forwarding, eBL and customs systems in different formats, so clerks re-key documents and a box waits on paperwork long after it is physically ready.
         who_benefits: Customs & Security
-        how_built: Descartes and Customs Single Window feeds conform through Lakeflow into the Customs Hold Console, so pre-arrival screening and hold resolution happen on one governed view before cargo lands.
+        how_built: CargoWise forwarding, INTTRA eBL bookings, Descartes customs status and SAP TM orders land through Lakeflow and conform under Unity Catalog, and Agent Bricks agents validate documents and draft release actions against governed terminal data.
         components:
-          - Customs Hold Console
+          - INTTRA eBL
+          - CargoWise One
           - Descartes Customs
-          - Customs Single Window
+          - SAP TM for Ports
           - Lakeflow
-          - Unity Catalog
-          - AI/BI
+          - Agent Bricks
         stories:
           - title: Hapag-Lloyd uses Databricks to enhance audit and compliance efficiency
             url: https://www.databricks.com/customers/hapag-lloyd
-      - name: Intermodal Rail Load
-        short: Rail
-        icon: partner
-        summary: Train loading plans matched to vessel discharge and yard slots.
-        problem: Rail load plans are built before the vessel finishes discharge, so when the box mix or yard position shifts the train works from stale lists, wagons go out light and ramp slots are wasted.
-        who_benefits: Landside Logistics
-        how_built: TOS discharge events and SAP TM rail orders conform on Delta Lake, so load plans in the Gate Optimizer are matched to actual discharge and yard slots and shared to the ramp over OpenSharing.
-        components:
-          - Gate Optimizer
-          - SAP TM for Ports
-          - Navis N4 TOS
-          - Delta Lake
-          - OpenSharing
-          - AI/BI
-      - name: Tariff & Storage Revenue
-        short: Commercial
-        icon: market
-        summary: Handling and storage charges reconciled to actual moves.
-        problem: Handling and storage charges bill from the TOS, but rebates, contract rates and free-dwell exceptions live in other systems, so revenue leaks wherever billed and actual moves diverge.
-        who_benefits: Commercial & Tariffs
-        how_built: Jade Master Terminal and Tideworks Mainsail data conform on Delta Lake and reconcile to actual crane and gate events, so handling and storage revenue is verified on certified AI/BI views.
-        components:
-          - Jade Master Terminal
-          - Tideworks Mainsail
-          - Navis N4 TOS
-          - Delta Lake
-          - AI/BI
-          - Unity Catalog
+      - name: Incident & Field Service Assistant
         stories:
-          - title: Hafnia modernizes maritime operations with Lakebase
-            url: https://www.databricks.com/customers/hafnia/lakebase
-      - name: Dangerous Goods
-        short: Safety
+          - title: Zerobus Ingest for telemetry and IoT at scale
+            url: https://www.databricks.com/blog/announcing-public-preview-zerobus-ingest
+          - title: Introducing the Data + AI Platform for Energy
+            url: https://www.databricks.com/blog/introducing-data-intelligence-platform-energy
+        short: Incident response
         icon: gavel
-        summary: DG declarations validated against stow position and segregation rules.
-        problem: DG declarations are checked against stow position and segregation rules by hand, so a mis-declared or wrongly stowed hazardous box can reach the yard, caught only at inspection.
+        summary: Security breaches, dangerous-goods anomalies and equipment incidents triaged from sensor and declaration data and routed to a field response as they happen.
+        problem: Perimeter breaches, mis-declared dangerous goods and equipment faults surface only at inspection or after an incident, because the gate, sensor and declaration signals that would flag them are never watched together or routed to the right crew.
         who_benefits: Customs & Security
-        how_built: INTTRA eBL and PCS declarations conform through Lakeflow and are validated against stow position on Delta Lake, so segregation breaches surface in the Customs Hold Console before the box is worked.
+        how_built: Identec gate, SICK yard-automation and INTTRA declaration events stream into Lakehouse//RT, anomaly models in Model Serving raise incidents in the Customs Hold Console, and Mosaic AI drafts the field response and next steps.
         components:
           - Customs Hold Console
+          - SICK Yard Automation
+          - Identec RFID Gates
           - INTTRA eBL
-          - Port Community System
-          - Lakeflow
-          - Delta Lake
-          - Unity Catalog
-      - name: Environmental Reporting
-        short: ESG
-        icon: chart
-        summary: Emissions and noise metrics reported to port authority programs.
-        problem: Emissions, energy and noise metrics for port-authority programs are stitched by hand from crane fuel, vessel AIS and equipment telemetry each cycle, so numbers arrive late and untraced.
-        who_benefits: Port Director Office
-        how_built: AIS, crane fuel and equipment telemetry conform on Delta Lake with Unity Catalog lineage, so emissions metrics are computed once and reported to port-authority programs from certified AI/BI products.
-        components:
-          - AIS Vessel Tracking
-          - Kalmar Insight
-          - Unity Catalog
-          - Delta Lake
-          - AI/BI
-          - Data Products
+          - Model Serving
+          - Mosaic AI
+      - name: Scenario Planning & Business Simulation
         stories:
-          - title: Leveraging ESG data to operationalize sustainability with Databricks
-            url: https://www.databricks.com/blog/2020/11/11/leveraging-esg-data-to-operationalize-sustainability.html
+          - title: Stress Testing Supply Chain Networks at Scale on Databricks
+            url: https://www.databricks.com/blog/stress-testing-supply-chain-networks-scale-databricks
+          - title: "Solution Accelerator: Supply Chain Stress Testing with Digital Twins"
+            url: https://github.com/databricks-industry-solutions/supply-chain-stress-test
+        short: Capacity scenarios
+        icon: gauge
+        summary: Berth, yard and labour capacity simulated under volume, service-change and disruption scenarios so the terminal plans capital and staffing to what could happen.
+        problem: Growth cases, new services and disruption plans are argued from spreadsheets that cannot replay how berths, yard and gangs actually behave, so capital and labour decisions are made without seeing where the terminal breaks.
+        who_benefits: Port Director Office
+        how_built: TOS move history and federated carrier schedule marts conform on Delta Lake, and simulation models tracked in MLflow score in Model Serving so throughput, berth and yard scenarios are compared under Unity Catalog governance in AI/BI.
+        components:
+          - Navis N4 TOS
+          - Carrier Schedule Marts
+          - Feature Store
+          - Model Serving
+          - MLflow
+          - AI/BI
 medallion:
   Bronze:
     short: Raw port and vessel feeds
     summary: TOS moves, AIS position reports, berth plans, customs declarations and gate transactions, landed exactly as received so a dwell time or a crane move can always be replayed.
   Silver:
     short: Conformed vessel, visit, unit
-    summary: Vessels, port calls, containers and bills of lading resolved into single conformed entities across TOS, PCS and carrier systems, with voyage legs stitched to one visit.
+    summary: Vessels, port calls, containers and bills of lading resolved into single conformed entities across TOS, PCS and carrier systems, with voyage legs stitched to one visit and tonnage or stockpile measures as bulk-terminal adaptations.
   Gold:
     short: Throughput, dwell, crane rate
     summary: 'Contracted products terminal and port authority teams run on: crane moves per hour, truck turnaround, vessel berth productivity, container dwell and demurrage exposure.'

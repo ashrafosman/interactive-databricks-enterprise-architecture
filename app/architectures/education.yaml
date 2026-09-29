@@ -1,5 +1,5 @@
 name: Education
-description: 'Higher education and K-12: student lifecycle from inquiry through alumni, learning outcomes, financial aid, and campus operations.'
+description: 'Higher-education-led with selected K-12 variants: student lifecycle from inquiry through alumni, learning outcomes, financial aid, and campus operations.'
 sources:
   - name: Student Information
     icon: erp
@@ -41,7 +41,7 @@ sources:
         icon: erp
         summary: 'Dominant K-12 student information system: enrollments, attendance, grades and state reporting across districts.'
         citations:
-          - peoplesoft-campus
+          - powerschool
         category: Student Information System (SIS)
         what_it_is: K-12 SIS covering enrollments, attendance, grades and mandated state reporting across districts.
         who_uses_it: District administration, State reporting and Attendance teams.
@@ -215,6 +215,29 @@ sources:
               - structured
             volume: GB-scale ledgers
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'Ed-Fi'
+        icon: zbraces
+        fmt: 'EdFi'
+        summary: 'Ed-Fi data standard and API for unifying K-12 student information across systems.'
+        spec_url: https://www.ed-fi.org/
+      - name: 'CEDS'
+        icon: zbraces
+        fmt: 'CEDS'
+        summary: 'US Common Education Data Standards for shared education data definitions.'
+        spec_url: https://ceds.ed.gov/
+      - name: 'PESC Transcripts'
+        icon: zbraces
+        fmt: 'PESC'
+        summary: 'PESC XML standard for electronic academic transcripts and records.'
+        spec_url: https://www.pesc.org/
+      - name: 'OneRoster'
+        icon: zbraces
+        fmt: '1R'
+        summary: '1EdTech standard for roster, enrolment and grade exchange.'
+        spec_url: https://www.1edtech.org/standards/oneroster
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -449,7 +472,7 @@ consumers:
     tiles:
       - name: Tableau / Qlik / ThoughtSpot
         icon: chart
-        summary: External BI against serverless SQL warehouses, with Unity Catalog permissions enforced end to end.
+        summary: External BI against SQL warehouses, with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for Unity Catalog-governed answers from the lakehouse, and advising updates in the channel teams already work in (Beta).
@@ -466,7 +489,7 @@ consumers:
           - ellucian-banner
       - name: Canvas Grade Passback
         icon: notebook
-        summary: Final grades and outcome mastery pushed to the LMS of record after faculty approval.
+        summary: Final grades and outcome mastery pushed to the LMS of record after faculty approval, with the SIS retaining authority for the official transcript.
         citations:
           - canvas-lms
       - name: Advising Mobile
@@ -493,7 +516,7 @@ consumers:
     tiles:
       - name: IPEDS & Federal Reporting
         icon: gavel
-        summary: IPEDS, Clery and financial responsibility metrics produced from the same governed tables the institution runs on.
+        summary: IPEDS, Clery and financial-responsibility metrics, each produced under its own reporting regime, from the same governed tables the institution runs on.
         citations:
           - ipeds
       - name: FERPA Audit Trail
@@ -507,7 +530,7 @@ consumers:
         summary: Published, contracted products discoverable in Unity Catalog Domains and shared over OpenSharing.
       - name: Sharing Recipients
         icon: share
-        summary: Consortia, researchers and state agencies reading live tables with no copy and no egress duplication.
+        summary: Consortia, researchers and state agencies accessing governed products, reducing bespoke exports with copies and transfer behavior dependent on the sharing mode.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -522,7 +545,7 @@ consumers:
       - name: Course Demand Planner
         icon: sheet
         short: Section planning
-        summary: Historical fill and waitlist patterns scored against instructional capacity before the schedule locks.
+        summary: Historical fill and waitlist patterns scored against instructional capacity, with headcount, housing and staffing scenarios, before the schedule locks.
       - name: Aid Packaging Workbench
         icon: market
         short: Award decisions
@@ -596,19 +619,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -798,7 +821,7 @@ agent_usecases:
         summary: Learning outcomes and employment metrics produced from governed tables accreditors can trace.
         problem: Accreditors want learning-outcome and employment evidence traced to source, but the metrics are rebuilt by hand each cycle from spreadsheets no one can audit back to the record.
         who_benefits: President & Provost
-        how_built: Outcome and employment data are conformed into governed data products on Delta Lake under Unity Catalog, so accreditation metrics in AI/BI trace to the same tables the institution runs on.
+        how_built: Outcome and institution-held graduate-employment data are conformed into governed data products on Delta Lake under Unity Catalog, so accreditation metrics in AI/BI trace to the same tables the institution runs on.
         components:
           - IPEDS / State Reporting
           - Data Products
@@ -827,7 +850,7 @@ agent_usecases:
         summary: Graduate outcomes and giving propensity scored from the same student record advancement already trusts.
         problem: Advancement works from nightly flat-file extracts of the student record, so graduate outcomes and giving propensity are stale and disconnected from the academic history they depend on.
         who_benefits: President & Provost
-        how_built: The conformed student record feeds giving-propensity models in Model Serving and a graduate-outcome view in Student 360, so advancement reads live segments in AI/BI without a copied file.
+        how_built: The conformed student record, advancement interactions and giving history feed giving-propensity models in Model Serving and a graduate-outcome view in Student 360, so advancement reads live segments in AI/BI without a copied file.
         components:
           - Student 360
           - CustomerLake
@@ -864,7 +887,7 @@ citation_index:
   workday-student:
     title: Workday Student
     url: https://www.workday.com/en-us/products/student.html
-  peoplesoft-campus:
+  powerschool:
     title: PowerSchool SIS
     url: https://www.powerschool.com/
   canvas-lms:
@@ -890,7 +913,7 @@ citation_index:
     url: https://www.powerfaids.org/
   nelnet:
     title: Nelnet Campus Commerce
-    url: https://en.wikipedia.org/wiki/Nelnet
+    url: https://www.nelnet.com/
   ed-fi:
     title: Ed-Fi data standard
     url: https://www.ed-fi.org/

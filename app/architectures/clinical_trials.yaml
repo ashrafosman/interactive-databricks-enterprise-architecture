@@ -253,6 +253,36 @@ sources:
               - structured
             volume: TB-scale historical datasets
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'CDISC SDTM'
+        icon: zbraces
+        fmt: 'SDTM'
+        summary: 'CDISC Study Data Tabulation Model for organising collected clinical trial data for submission.'
+        spec_url: https://www.cdisc.org/standards/foundational/sdtm
+      - name: 'CDISC ADaM'
+        icon: zbraces
+        fmt: 'ADaM'
+        summary: 'CDISC Analysis Data Model for analysis-ready datasets supporting statistical results.'
+        spec_url: https://www.cdisc.org/standards/foundational/adam
+      - name: 'ODM-XML'
+        icon: zbraces
+        fmt: 'ODM'
+        summary: 'CDISC Operational Data Model for capturing, exchanging and archiving eCRF data.'
+        spec_url: https://www.cdisc.org/standards/data-exchange/odm-xml
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Medidata Rave'
+          - 'Oracle Clinical'
+          - 'Veeva CDMS'
+      - name: 'Define-XML'
+        icon: zbraces
+        fmt: 'DEF'
+        summary: 'CDISC metadata standard describing dataset structure for regulatory submissions.'
+        spec_url: https://www.cdisc.org/standards/data-exchange/define-xml
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -348,7 +378,7 @@ pipelines:
           - Enrollment Forecasting
           - Site Selection
           - Remote Monitoring
-          - Protocol Deviation Mgmt
+          - Patient Recruitment
       - name: Data Management
         mark: AI/BI
         summary: Database lock readiness, query resolution and SDTM conversion, tracked on open-query aging, data completeness and lock cycle time.
@@ -366,8 +396,8 @@ pipelines:
             cares: SDTM and ADaM conformance for the submission package.
         ucs:
           - SDTM Automation
-          - Remote Monitoring
-          - Regulatory Submissions
+          - Clinical Data Repository
+          - OMOP Standardisation
       - name: Medical & Safety
         mark: Model Serving
         summary: DSMB reviews, signal detection and medical monitoring, judged on SAE incidence, time-to-signal and expedited-report timeliness.
@@ -386,7 +416,7 @@ pipelines:
         ucs:
           - Safety Signal Detection
           - Remote Monitoring
-          - Protocol Deviation Mgmt
+          - HEOR Acceleration
       - name: Biostatistics
         mark: Apps
         summary: Interim analyses, adaptive designs and TLF production, measured on interim-look turnaround, TLF cycle time and protocol-deviation rate.
@@ -479,7 +509,7 @@ consumers:
     tiles:
       - name: Tableau / Spotfire
         icon: chart
-        summary: Enrollment and safety dashboards on serverless SQL.
+        summary: Enrollment and safety dashboards on SQL warehouses.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for enrollment status in study teams.
@@ -632,26 +662,26 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
     span: 3
     cols: 2
     tiles:
-      - name: Enrollment & Site Performance Agent
+      - name: Enrollment & Sites Agent
         icon: genie
         summary: Ask how enrollment is tracking to plan and which sites are at risk, in plain language.
         feeds:
@@ -669,7 +699,7 @@ agent_usecases:
           - What is the screen-failure rate by site and protocol?
           - How long is site activation taking from selection to first patient in?
           - Which countries are driving the current enrollment shortfall?
-      - name: Safety & Pharmacovigilance Agent
+      - name: Safety Signals Agent
         icon: genie
         summary: Explore adverse events, emerging signals and expedited-reporting timeliness across trials.
         feeds:
@@ -687,7 +717,7 @@ agent_usecases:
           - How many expedited reports are approaching their reporting deadline?
           - What is our time-to-signal for newly reported serious events?
           - Which concomitant medications co-occur most with reported events?
-      - name: Data Management & Quality Agent
+      - name: Data Quality & Lock Agent
         icon: genie
         summary: Answer query-aging, completeness and lock-readiness questions across EDC and labs.
         feeds:
@@ -705,7 +735,7 @@ agent_usecases:
           - How many visits are missing or overdue by site?
           - Where does SDTM conformance fail validation checks?
           - How far are we from database-lock readiness this week?
-      - name: Feasibility & Site Selection Agent
+      - name: Site Feasibility Agent
         icon: genie
         summary: Rank sites and geographies for the next protocol from history, registries and real-world data.
         feeds:
@@ -794,22 +824,19 @@ agent_usecases:
         stories:
           - title: Improving drug safety with adverse event detection using NLP
             url: https://www.databricks.com/blog/2022/01/17/improving-drug-safety-with-adverse-event-detection-using-nlp.html
-      - name: Protocol Deviation Mgmt
-        short: Compliance
-        icon: gavel
-        summary: Deviations trended and remediated before inspection findings.
-        problem: Protocol deviations are reviewed in quarterly site assessments, so a pattern of the same avoidable deviation runs for months before anyone catches it, and inspection findings follow.
-        who_benefits: Clinical Operations
-        how_built: Deviation data from EDC is conformed under Unity Catalog and trended in AI/BI and Genie, with AI Functions classifying free-text so remediation starts before a finding, not after.
+      - name: HEOR Acceleration
+        short: Evidence
+        icon: chart
+        summary: Real-world cost and outcomes evidence built for payers and HTA bodies.
+        problem: Health-economics and outcomes studies are one-off analyses against fresh extracts that take months to assemble, so payer dossiers and comparative-effectiveness evidence always lag the questions the market is already asking.
+        who_benefits: Biostatistics
+        how_built: IQVIA real-world data and Flatiron oncology records are conformed under Unity Catalog on Delta Lake and analysed in Notebooks & IDEs, so HEOR cohorts and outcomes evidence carry lineage instead of living in ad hoc spreadsheets.
         components:
-          - AI/BI
-          - Genie
+          - IQVIA Real World
+          - Flatiron Oncology EHR
           - Unity Catalog
-          - Medidata Rave EDC
-          - AI Functions
-        stories:
-          - title: Clinical trials run longer than they have to. That's a patient problem.
-            url: https://www.databricks.com/blog/clinical-trials-run-longer-they-have-thats-patient-problem
+          - Delta Lake
+          - Notebooks & IDEs
       - name: SDTM Automation
         short: Data Mgmt
         icon: db
@@ -847,10 +874,10 @@ agent_usecases:
       - name: Patient Recruitment
         short: Digital
         icon: custlake
-        summary: Pre-screened cohorts identified from RWE and registries.
-        problem: Roughly 80% of trials miss enrollment timelines because eligible patients are hard to find, and the EHR and registry signals that would surface them sit outside the trial systems.
+        summary: Candidate cohorts identified from RWE and registries for site screening.
+        problem: Trials often miss enrollment timelines because eligible patients are hard to find, and the EHR and registry signals that would surface them sit outside the trial systems.
         who_benefits: Clinical Operations
-        how_built: De-identified EHR and registry data from Flatiron and IQVIA are conformed under Unity Catalog, and cohort models in Model Serving pre-screen eligible patients against protocol criteria.
+        how_built: De-identified EHR and registry data from Flatiron and IQVIA are conformed under Unity Catalog, and cohort models in Model Serving estimate protocol-eligible cohort feasibility, with eligibility confirmation and patient contact handled through authorized site recruitment workflows.
         components:
           - Flatiron Oncology EHR
           - IQVIA Real World
@@ -860,34 +887,32 @@ agent_usecases:
         stories:
           - title: Clinical operations intelligence belongs on the Lakehouse
             url: https://www.databricks.com/blog/clinical-operations-intelligence-belongs-lakehouse
-          - title: How Regeneron is discovering new treatments with AI
-            url: https://www.databricks.com/customers/regeneron
-      - name: Supply Forecasting
-        short: IRT
-        icon: product
-        summary: Depot and site inventory against enrollment scenarios.
-        problem: Drug supply is planned against static enrollment assumptions, so depots over-stock and expire or stock out mid-study, and a supply gap can halt randomization at exactly the wrong site.
-        who_benefits: Clinical Operations
-        how_built: Enrollment forecasts feed supply models scored in Model Serving and tracked in MLflow, projecting depot and site inventory that drives IRT shipments from the Enrollment Cockpit.
-        components:
-          - Enrollment Cockpit
-          - Signant SmartSupplies
-          - Model Serving
-          - MLflow
-          - AI/BI
-      - name: Regulatory Submissions
-        short: RIM
-        icon: share
-        summary: eCTD packages produced from governed clinical datasets.
-        problem: eCTD packages are assembled by hand from datasets scattered across data management, biostats and safety, so submissions are slow and every health-authority query reopens the hunt.
+      - name: Clinical Data Repository
+        short: Modernisation
+        icon: db
+        summary: Legacy SDTM and study marts modernised into one governed repository.
+        problem: Historical study data is trapped in ageing SDTM marts and per-study silos, so pooled analysis and legacy queries are slow and every cross-study question turns into another migration project.
         who_benefits: Data Management
-        how_built: Governed SDTM and ADaM products are built on Delta Lake under Unity Catalog and published to Veeva RIM and regulators as data products shared over OpenSharing with full lineage.
+        how_built: Federation provides continuing access to retained legacy SDTM marts, while selected datasets are materialized onto Delta Lake under Unity Catalog by Lakeflow, so one governed clinical data repository serves pooled analysis.
         components:
-          - Veeva RIM
+          - Legacy SDTM Mart
           - CDISC Standards
-          - Unity Catalog
-          - Data Products
+          - Lakeflow
           - Delta Lake
+          - Unity Catalog
+      - name: OMOP Standardisation
+        short: Data model
+        icon: api
+        summary: Trial and real-world data mapped to the OMOP common data model.
+        problem: Every analysis and RWE study remaps clinical and real-world data its own way, so results do not compare across studies and collaborators cannot pool data without yet another translation layer.
+        who_benefits: Data Management
+        how_built: EDC and real-world data are mapped to the OMOP common data model through Lakeflow on Delta Lake under Unity Catalog, so cohorts, analytics and external collaborations all run against one governed standard.
+        components:
+          - CDISC Standards
+          - IQVIA Real World
+          - Lakeflow
+          - Delta Lake
+          - Unity Catalog
 medallion:
   Bronze:
     short: Raw eCRF and lab feeds

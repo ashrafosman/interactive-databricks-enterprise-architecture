@@ -203,6 +203,29 @@ sources:
               - structured
             volume: millions of NAV and waterfall rows queried in place
             interval: Query-time federation
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'RESO Data Dictionary'
+        icon: zbraces
+        fmt: 'RESO'
+        summary: 'RESO standard vocabulary for real-estate listing and property data.'
+        spec_url: https://www.reso.org/data-dictionary/
+      - name: 'RESO Web API'
+        icon: zbraces
+        fmt: 'API'
+        summary: 'RESO OData-based API standard for accessing MLS listing data.'
+        spec_url: https://www.reso.org/reso-web-api/
+      - name: 'RESO Common Format'
+        icon: zbraces
+        fmt: 'RCF'
+        summary: 'RESO standardised replication format for bulk listing data exchange.'
+        spec_url: https://www.reso.org/
+      - name: 'OSCRE IDM'
+        icon: zbraces
+        fmt: 'OSCRE'
+        summary: 'OSCRE Industry Data Model for commercial real-estate information exchange.'
+        spec_url: https://www.oscre.org/
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -214,8 +237,6 @@ cloud_integrations:
       - name: Municipal Permit APIs
         icon: api
         summary: Zoning and permit filings consumed inbound for development risk monitoring.
-        citations:
-          - procore
         category: Government Permit / Zoning Data
         what_it_is: Zoning and permit filings consumed inbound for development risk monitoring.
         who_uses_it: Project Controls, Development Director and Governance Engineering teams.
@@ -436,7 +457,7 @@ consumers:
     tiles:
       - name: Tableau / Qlik / ThoughtSpot
         icon: chart
-        summary: External BI against serverless SQL warehouses, with Unity Catalog permissions enforced end to end.
+        summary: External BI against SQL warehouses, with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for governed answers and site updates in the channel asset teams work in (Beta).
@@ -458,7 +479,7 @@ consumers:
           - honeywell-forge
       - name: FM Work Orders
         icon: stream
-        summary: Predictive maintenance tasks raised in ServiceChannel before failures.
+        summary: Anomaly-triggered inspection and maintenance recommendations raised in ServiceChannel.
         citations:
           - servicechannel
   - name: Investors & Tenants
@@ -487,7 +508,7 @@ consumers:
           - measurabl
       - name: IFRS 16 / ASC 842
         icon: share
-        summary: Lease liability schedules from contracted Gold products.
+        summary: Corporate-lessee lease liability schedules, where applicable, from the SAP real estate accounting variant.
         citations:
           - sap-rem
   - name: Published Products
@@ -549,7 +570,7 @@ consumers:
           - Brokerage Team
       - name: Development & Capex
         icon: aibi
-        summary: Draw schedules, cost-to-complete and development IRR against covenants.
+        summary: Draw schedules, cost-to-complete and development IRR against approved project cash-flow assumptions and lender covenants.
         kpis:
           - Budget variance
           - Schedule variance
@@ -587,19 +608,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -644,7 +665,7 @@ agent_usecases:
           - Which proposals are at risk of expiring options this month?
       - name: Development & Capex Agent
         icon: genie
-        summary: Answer questions on draw schedules, cost-to-complete and development IRR.
+        summary: Answer questions on draw schedules, cost-to-complete and development IRR against approved project cash flows and lender covenants.
         feeds:
           - Procore Project Mgmt
           - Oracle Aconex
@@ -752,7 +773,7 @@ agent_usecases:
         summary: Cost-to-complete and IRR tracked against lender covenants in real time.
         problem: Development budgets and schedules live in the project system while draws and covenants live in finance, so cost-to-complete and IRR are reconciled by hand and slippage surfaces only at the lender report.
         who_benefits: Development
-        how_built: Procore budget, schedule and draw data land through Lakeflow and are tracked against covenants in AI/BI, so cost-to-complete and IRR update live on the Development Tracker.
+        how_built: Procore budget, schedule and draw data land through Lakeflow and are joined to finance-approved project cash flows and lender covenant terms in AI/BI, so cost-to-complete and IRR update live on the Development Tracker.
         components:
           - Development Tracker
           - Procore Project Mgmt

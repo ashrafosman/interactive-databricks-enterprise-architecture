@@ -97,7 +97,7 @@ sources:
         icon: market
         summary: State Medicaid pharmacy benefit administration and point-of-sale claim processing for fee-for-service and single-PBM programs.
         citations:
-          - argus
+          - gainwell
         category: Medicaid Pharmacy Benefit System
         what_it_is: Administers state Medicaid pharmacy benefits and point-of-sale claim processing for fee-for-service and single-PBM programs, emitting POS claim records.
         who_uses_it: PBM Leadership, Trust & Comply and regulatory-affairs teams.
@@ -336,6 +336,29 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'NCPDP Telecom'
+        icon: zbraces
+        fmt: 'TELE'
+        summary: 'NCPDP Telecommunication standard for real-time pharmacy claim adjudication.'
+        spec_url: https://www.ncpdp.org/Standards-Development/Standards-Information
+      - name: 'NCPDP SCRIPT'
+        icon: zbraces
+        fmt: 'SCRP'
+        summary: 'NCPDP SCRIPT standard for electronic prescribing between prescribers and pharmacies.'
+        spec_url: https://www.ncpdp.org/Standards-Development/Standards-Information
+      - name: 'NCPDP F&B'
+        icon: zbraces
+        fmt: 'F&B'
+        summary: 'NCPDP Formulary and Benefit standard for drug coverage information.'
+        spec_url: https://www.ncpdp.org/Standards-Development/Standards-Information
+      - name: 'NCPDP RTPB'
+        icon: zbraces
+        fmt: 'RTPB'
+        summary: 'NCPDP Real-Time Prescription Benefit for point-of-care price and coverage checks.'
+        spec_url: https://www.ncpdp.org/Standards-Development/Standards-Information
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -456,8 +479,8 @@ pipelines:
         mark: Lakehouse//RT
         summary: Retail pharmacy operations on dispensing workflow and throughput, mail and specialty on fulfillment and patient support, and inventory on stock, replenishment and 340B accumulation.
         uses:
-          - - Dispensing Cockpit
-            - Fill volume, wait time and out-of-stock risk flagged before a patient is turned away.
+          - - Pharmacy management system
+            - Fill volume, wait time and out-of-stock risk monitored in the external pharmacy-management workspace.
           - - Lakehouse//RT
             - Live dispensing and inventory state at the latency a pharmacy moves at.
           - - Model Serving
@@ -534,7 +557,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Executive and clinical dashboards against serverless SQL with Unity Catalog permissions enforced end to end.
+        summary: Executive and clinical dashboards against SQL warehouses with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for net-cost and adherence answers in the channel clinical and finance already work in.
@@ -563,7 +586,7 @@ consumers:
           - rxclaim
       - name: PA Determinations
         icon: gavel
-        summary: Prior-authorization determinations written back into the PA workflow prescribers and pharmacies work in.
+        summary: Authorized prior-authorization determinations written back into the PA workflow prescribers and pharmacies work in.
         citations:
           - covermymeds
       - name: Dispensing Queue
@@ -675,19 +698,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -777,7 +800,7 @@ agent_usecases:
         summary: Manufacturer rebate accrual and formulary value reconciled per claim so net cost is understood before the invoice, not after.
         problem: Rebate contracts, formulary tiers and adjudicated claims sit in separate systems, so rebate leakage and net cost per client are reconstructed by hand quarters after the money moved.
         who_benefits: PBM Leadership
-        how_built: Model N rebate contracts and RxClaim adjudication are conformed in the lakehouse; accrual and net cost are scored per claim in Model Serving and read in the Rebate Cockpit on certified Metric Views.
+        how_built: Model N manufacturer settlement records and RxClaim adjudication are conformed in the lakehouse; PBM accrual and client net-cost pass-through are scored per claim in Model Serving and read in the Rebate Cockpit on certified Metric Views.
         components:
           - Rebate Cockpit
           - Model N Rebates
@@ -791,10 +814,10 @@ agent_usecases:
       - name: Prior Auth Automation
         short: Clinical
         icon: gavel
-        summary: Prior-authorization requests triaged, evidence assembled and routine approvals drafted so patients wait hours, not days.
+        summary: Prior-authorization requests triaged, evidence assembled and routine approvals drafted to cut waits toward hours rather than days.
         problem: Prior authorization is a manual, fax-and-portal process; requests queue for days while clinicians reassemble the same claims, prescriber and formulary evidence by hand.
         who_benefits: Clinical & UM
-        how_built: CoverMyMeds PA requests and Surescripts data land in the lakehouse; text models classify and draft determinations in Model Serving and Agent Bricks, with the PA Assistant writing decisions back.
+        how_built: CoverMyMeds PA requests and Surescripts data land in the lakehouse; text models classify and draft determinations in Model Serving and Agent Bricks, and the PA Assistant writes back only determinations accepted under approved policy.
         components:
           - PA Assistant
           - CoverMyMeds
@@ -874,8 +897,6 @@ agent_usecases:
           - Unity Catalog
           - Plan Sponsor Portal
         stories:
-          - title: Walgreens builds an intelligent pharmacy data platform
-            url: https://www.databricks.com/customers/walgreens
           - title: Abacus Insights unifies healthcare data on Databricks
             url: https://www.databricks.com/customers/abacus-insights
       - name: Specialty Pharmacy
@@ -916,7 +937,7 @@ agent_usecases:
       - name: 340B Compliance
         short: Compliance
         icon: gavel
-        summary: 340B eligibility, accumulation and split-billing reconciled continuously so every discounted claim holds up under audit.
+        summary: 340B eligibility, accumulation and split-billing reconciled continuously with monitored exceptions and traceable evidence for audit.
         problem: 340B eligibility, accumulation and duplicate-discount prevention span dispensing, TPA and claims feeds, so compliance is a reactive audit scramble rather than continuous monitoring.
         who_benefits: Pharmacy Ops
         how_built: Trisus and Macro Helix split-billing, dispensing and wholesaler data are conformed under Unity Catalog; eligibility and duplicate-discount checks run continuously with lineage for audit.
@@ -974,7 +995,7 @@ citation_index:
   rxclaim:
     title: SS&C Health (RxClaim)
     url: https://www.ssctech.com/
-  argus:
+  gainwell:
     title: Gainwell Rx Medicaid pharmacy
     url: https://www.gainwelltechnologies.com/solutions/pharmacy-solutions/
   ncpdp:

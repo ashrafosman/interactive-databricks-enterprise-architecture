@@ -339,6 +339,36 @@ sources:
               - structured
             volume: TB-scale historical positions + cost basis
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'ISO 20022'
+        icon: zbraces
+        fmt: '20022'
+        summary: 'Financial messaging standard for payments, securities and reporting.'
+        spec_url: https://www.iso20022.org/
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'SWIFT'
+          - 'SS&C'
+          - 'Broadridge'
+      - name: 'ISO 15022'
+        icon: zbraces
+        fmt: '15022'
+        summary: 'Securities settlement and custody messaging with custodians.'
+        spec_url: https://www.iso15022.org/
+      - name: 'FIX'
+        icon: zbraces
+        fmt: 'FIX'
+        summary: 'Financial Information eXchange protocol for order routing and execution.'
+        spec_url: https://www.fixtrading.org/standards/fix-protocol/
+      - name: 'OFX'
+        icon: zbraces
+        fmt: 'OFX'
+        summary: 'Open Financial Exchange for account aggregation and financial data feeds.'
+        spec_url: https://financialdataexchange.org/
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -414,8 +444,8 @@ pipelines:
             cares: platform consolidation and the operating model across custodians.
         ucs:
           - Client Household 360
-          - Client Attrition Risk
           - Performance Reporting
+          - Practice FP&A
       - name: Advisory Field
         mark: Genie One
         summary: Financial advisors preparing for and running client reviews; relationship managers on HNW and private-banking relationships; client associates on meeting prep, service requests and follow-up.
@@ -434,9 +464,9 @@ pipelines:
           - name: Client associates
             cares: meeting prep, service requests and follow-up.
         ucs:
-          - Advisor Meeting Prep
           - Next Best Action
           - Client Attrition Risk
+          - Client Service AI
       - name: Investments
         mark: AI/BI
         summary: The chief investment office on model portfolios and asset allocation; portfolio construction on rebalancing and tax-aware trading; investment research on fund selection and manager due diligence.
@@ -477,7 +507,7 @@ pipelines:
             cares: account opening and funding.
         ucs:
           - Digital & Robo Advice
-          - Client Onboarding
+          - Client Service AI
           - Next Best Action
       - name: Risk & Compliance
         mark: AI Functions
@@ -488,7 +518,7 @@ pipelines:
           - - Genie One
             - Investigators ask for a client's activity around an event in plain language.
           - - Unity Catalog
-            - Audit trails and lineage that satisfy a regulatory examination.
+            - Audit trails and lineage as traceable evidence supporting a regulatory examination.
         sub:
           - name: Compliance
             cares: suitability, Reg BI and books-and-records.
@@ -498,7 +528,6 @@ pipelines:
             cares: advisor conduct and communications surveillance.
         ucs:
           - KYC AML & Suitability
-          - Client Onboarding
           - Client Household 360
   - name: Technical
     icon: code
@@ -539,7 +568,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: External BI against serverless SQL warehouses, with Unity Catalog permissions enforced end to end.
+        summary: External BI against SQL warehouses, with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for governed answers, and household and pipeline updates in the channel advisors already work in (Beta).
@@ -578,7 +607,7 @@ consumers:
         summary: Form ADV, Reg BI and books-and-records evidence produced from the same governed tables the firm runs on.
       - name: Client Statements
         icon: share
-        summary: Performance, holdings and fee statements and 1099 reporting generated from contracted Gold products.
+        summary: Performance, holdings and fee statements from contracted Gold products, with 1099 reporting produced from authorized custodian and tax records under the responsible entity's process.
   - name: Published Products
     icon: product
     tiles:
@@ -587,7 +616,7 @@ consumers:
         summary: Published, contracted products discoverable in Unity Catalog Domains and shared over OpenSharing.
       - name: Sharing Recipients
         icon: share
-        summary: Custodians, sub-advisors and partners reading live tables with no copy and no egress duplication.
+        summary: Custodians, sub-advisors and partners reading governed shared tables without separately maintained publisher extracts.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -676,26 +705,26 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
     span: 3
     cols: 2
     tiles:
-      - name: Household & Relationship Agent
+      - name: Household Growth Agent
         icon: genie
         summary: Ask about a household's value, held-away assets and relationship context in plain language.
         feeds:
@@ -769,18 +798,18 @@ agent_usecases:
     span: 8
     cols: 5
     tiles:
-      - name: Advisor Meeting Prep
-        short: Productivity
-        icon: docs
-        summary: Assembling a traceable client review pack and meeting brief from portfolio, planning and CRM data, so advisors spend the time on the conversation, not the preparation.
-        problem: Client data is scattered across custody, portfolio, planning and CRM systems, so advisors burn hours hand-building each review pack and the least-served clients get the thinnest preparation.
-        who_benefits: Advisory Field
-        how_built: Household, portfolio and planning data are unified in the lakehouse; the Client Review Builder drafts traceable packs with Agent Bricks and advisors query specifics in Genie before the meeting.
+      - name: Client Service AI
+        short: Service
+        icon: aisvc
+        summary: Call summarization, agent assist and self-service answers across the client service desk, drafted from governed household data.
+        problem: Client service teams jump between custody, planning and CRM systems to answer a call, so wait times grow, wrap-up is manual and the same question is answered differently each time.
+        who_benefits: Client Experience
+        how_built: Call and case data are unified in the lakehouse under Unity Catalog; Mosaic AI agents built with Agent Bricks summarize interactions and draft answers against governed household data, surfaced in the service workflow.
         components:
-          - Client Review Builder
-          - Genie
           - Salesforce FSC
+          - Mosaic AI
           - Agent Bricks
+          - Genie
           - Unity Catalog
         stories:
           - title: Wealth advisor productivity starts with the client conversation
@@ -840,7 +869,7 @@ agent_usecases:
       - name: Tax-Loss Harvesting
         short: Tax alpha
         icon: chart
-        summary: Finding realised-loss opportunities across a household's taxable accounts given current lots and estimated tax rate, before the tax year closes.
+        summary: Finding unrealized-loss harvesting candidates across a household's taxable accounts given current lots and estimated tax rate, before the tax year closes.
         problem: Tax-loss opportunities hide in per-account cost-basis data that is never viewed at household level, so harvestable losses expire unclaimed and wash-sale rules are hard to police.
         who_benefits: Investments
         how_built: Cost-basis and lot data are conformed to Gold; harvest candidates are scored across the household and surfaced in the Rebalancing Console and to advisors in Genie.
@@ -901,26 +930,23 @@ agent_usecases:
         stories:
           - title: 'Customer Story: HSBC'
             url: https://www.databricks.com/customers/hsbc
-      - name: Client Onboarding
-        short: Account opening
+      - name: Practice FP&A
+        short: Finance
         icon: identity
-        summary: Opening, verifying and funding a new household across signature, KYC and custodial account creation in one governed flow rather than a multi-week paper chase.
-        problem: Account opening spans signature, screening and custodial systems with manual re-keying, so onboarding takes weeks, funding stalls and status is invisible to the advisor.
-        who_benefits: Client Experience
-        how_built: Onboarding state is orchestrated in the Onboarding Studio on Lakebase; Fenergo screening and DocuSign signature events are governed in Unity Catalog and custodial accounts created over managed writes.
+        summary: Fee revenue, margin and cost-to-serve planned and closed on governed data instead of reconciled billing extracts.
+        problem: Fee revenue, advisor compensation and cost-to-serve are stitched from billing and portfolio extracts each month, so the practice closes late and has no reliable forward view of margin by office or segment.
+        who_benefits: Wealth Leadership
+        how_built: Billing, portfolio and cost feeds conform on the lakehouse under Unity Catalog, AI Functions draft variance commentary, and fee revenue, margin and cost-to-serve are planned and reported through AI/BI and Genie.
         components:
-          - Onboarding Studio
-          - Fenergo Onboarding
-          - DocuSign eSignature
+          - SS&C Black Diamond
+          - AI Functions
+          - AI/BI
+          - Genie
           - Unity Catalog
-          - Lakebase
-        stories:
-          - title: Addepar accelerates client onboarding with Databricks
-            url: https://www.databricks.com/customers/addepar
       - name: KYC AML & Suitability
         short: Compliance
         icon: gavel
-        summary: Screening clients and monitoring account activity for KYC, AML and suitability with an audit trail a regulator will accept, without drowning supervisors in false positives.
+        summary: Screening clients and monitoring account activity for KYC, AML and suitability with traceable evidence supporting regulatory examination, without drowning supervisors in false positives.
         problem: Screening and suitability run across siloed compliance systems with gappy data, so alerts are noisy, investigations are slow and completeness cannot be proven to an examiner.
         who_benefits: Risk & Compliance
         how_built: Client, activity and communications data are unified in the lakehouse; AI Functions and models score suitability and abuse patterns with LexisNexis screening, and cases open in the supervision queue.
@@ -941,7 +967,7 @@ medallion:
     summary: Custodial position and transaction files from Pershing, Fidelity and Schwab, Addepar and Orion portfolio extracts, Salesforce FSC activity and eMoney financial plans, landed exactly as received so a holding or a fee can always be replayed as it stood.
   Silver:
     short: Conformed household, account, position
-    summary: Households, clients, accounts and positions resolved into single conformed entities across the custody, portfolio and CRM estates, with security identifiers reconciled and every account linked to one household and one advisor.
+    summary: Households, clients, accounts and positions resolved into single conformed entities across the custody, portfolio and CRM estates, with security identifiers reconciled and each account linked to one primary reporting household and advisor per reporting period, retaining effective-dated links for other valid entity, household and advisory relationships.
   Gold:
     short: AUM, fees, performance, flows
     summary: 'Contracted products the wealth business runs on: AUM and net new assets by advisor and household, fee revenue and margin, time-weighted performance and attribution, and net flows by segment and channel.'
@@ -954,7 +980,7 @@ citation_index:
     url: https://institutional.fidelity.com/
   schwab-adv:
     title: Schwab Advisor Services
-    url: https://en.wikipedia.org/wiki/Charles_Schwab_Corporation
+    url: https://advisorservices.schwab.com/
   apex:
     title: Apex Fintech Solutions
     url: https://www.apexfintechsolutions.com/
@@ -972,7 +998,7 @@ citation_index:
     url: https://www.ssctech.com/
   sfdc-fsc:
     title: Salesforce Financial Services Cloud
-    url: https://www.salesforce.com/products/financial-services-cloud/overview/
+    url: https://www.salesforce.com/financial-services/
   redtail:
     title: Redtail Technology CRM
     url: https://www.redtailtechnology.com/

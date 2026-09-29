@@ -328,6 +328,24 @@ sources:
               - structured
             volume: TB-scale audit history
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'OCSF'
+        icon: zbraces
+        fmt: 'OCSF'
+        summary: 'Open Cybersecurity Schema Framework, a vendor-agnostic taxonomy for security telemetry.'
+        spec_url: https://schema.ocsf.io/
+      - name: 'STIX'
+        icon: zbraces
+        fmt: 'STIX'
+        summary: 'Structured Threat Information eXpression for representing cyber threat intelligence.'
+        spec_url: https://oasis-open.github.io/cti-documentation/stix/intro
+      - name: 'TAXII'
+        icon: zbraces
+        fmt: 'TAXII'
+        summary: 'Trusted Automated eXchange of Intelligence Information transport for sharing STIX.'
+        spec_url: https://oasis-open.github.io/cti-documentation/taxii/intro
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -338,7 +356,7 @@ cloud_integrations:
     tiles:
       - name: OCSF Event Streams
         icon: stream
-        summary: Security telemetry normalised to the Open Cybersecurity Schema Framework on arrival and landed as governed tables, so detections are written once against a vendor-neutral schema.
+        summary: Security telemetry that arrives already normalised to the Open Cybersecurity Schema Framework, landed as governed tables, so detections are written once against a vendor-neutral schema.
         citations:
           - ocsf
         category: Normalized Security Schema (OCSF)
@@ -530,7 +548,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Executive risk and SOC-performance dashboards against serverless SQL warehouses, with Unity Catalog permissions enforced end to end.
+        summary: Executive risk and SOC-performance dashboards against SQL warehouses, with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for Unity Catalog-governed answers from the security lakehouse, and incident updates in the channel the SOC already works in (Beta).
@@ -577,7 +595,7 @@ consumers:
         summary: SOC 2, PCI DSS and NIST control coverage and evidence produced from the same governed tables the SOC runs on.
       - name: Audit Evidence
         icon: docs
-        summary: Immutable query and access logs proving who saw what and when, covering audit requirements without extra instrumentation.
+        summary: Immutable query and access logs proving who saw what and when, supporting query-audit evidence for applicable controls without extra instrumentation.
       - name: Regulatory Filings
         icon: gavel
         summary: Breach-notification and regulator reporting produced from contracted Gold products rather than reassembled by hand under deadline.
@@ -592,7 +610,7 @@ consumers:
         summary: Curated indicators and detections shared with ISACs and partners over Delta Sharing rather than emailed spreadsheets.
       - name: Sharing Recipients
         icon: share
-        summary: Subsidiaries, MSSPs and regulators reading live governed tables with no copy and no egress duplication.
+        summary: Subsidiaries, MSSPs and regulators reading live governed tables through governed sharing that reduces bespoke exports, without guaranteeing absence of recipient copies or network transfer.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -681,19 +699,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -934,7 +952,7 @@ agent_usecases:
         summary: Retaining full-fidelity telemetry in open formats at cloud-commodity cost, tiering logs by source and value, and querying years of history instead of dropping data to fit a SIEM budget.
         problem: Per-gigabyte SIEM ingestion pricing forces teams to drop logs, shorten retention and ignore unstructured data, so detection and investigation run on incomplete evidence chosen by budget rather than risk.
         who_benefits: Security Leadership
-        how_built: All telemetry lands in the Lakehouse in open OCSF, Delta and Iceberg formats with Auto Loader and Lakeflow, retained cheaply and governed in Unity Catalog, with compute paid only on query.
+        how_built: All telemetry lands in the Lakehouse in open Delta and Iceberg tables with Auto Loader and Lakeflow, normalised to the OCSF event schema, retained cheaply and governed in Unity Catalog, with analytical query compute billed on query alongside separate ingestion, transformation and scoring costs.
         components:
           - Lakehouse
           - Unity Catalog
@@ -949,7 +967,7 @@ agent_usecases:
 medallion:
   Bronze:
     short: Raw security telemetry
-    summary: Endpoint, identity, network, cloud-audit and SIEM logs from CrowdStrike, Splunk, Okta and dozens of sources, landed exactly as received in open OCSF, Delta and Iceberg formats so any alert can be replayed against full-fidelity history rather than a truncated retention window.
+    summary: Endpoint, identity, network, cloud-audit and SIEM logs from CrowdStrike, Splunk, Okta and dozens of sources, landed exactly as received in open Delta and Iceberg tables so any alert can be replayed against full-fidelity history rather than a truncated retention window.
   Silver:
     short: Conformed entities & OCSF
     summary: Users, hosts, identities and assets resolved into single conformed entities across the endpoint, identity and network estates, normalised to the Open Cybersecurity Schema Framework and enriched with threat-intel indicators and MITRE ATT&CK technique tags.

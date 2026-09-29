@@ -265,6 +265,26 @@ sources:
               - structured
             volume: TB-scale audited marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'XBRL GL'
+        icon: zbraces
+        fmt: 'XBRL'
+        summary: 'XBRL Global Ledger taxonomy for transaction-level accounting data exchange.'
+        spec_url: https://www.xbrl.org/the-standard/what/gl/
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'SAP'
+          - 'Oracle NetSuite'
+          - 'Workiva'
+      - name: 'SAF-T'
+        icon: zbraces
+        fmt: 'SAFT'
+        summary: 'OECD Standard Audit File for Tax, a standardised export of accounting records.'
+        spec_url: https://www.oecd.org/tax/
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -380,7 +400,7 @@ pipelines:
           - - Lakeflow
             - Time, rate and contract feeds reconciled to the general ledger continuously.
           - - Unity Catalog
-            - SOX-ready lineage and access across the finance and delivery estate.
+            - Audit-supporting lineage and access across the finance and delivery estate.
         sub:
           - name: CFO
             cares: revenue recognition, cash and firm margin under pressure.
@@ -474,7 +494,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Partner and practice dashboards against serverless SQL with Unity Catalog permissions enforced end to end.
+        summary: Partner and practice dashboards against SQL warehouses with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for governed answers on utilization and margin in the channel the firm already works in (Beta).
@@ -516,10 +536,10 @@ consumers:
     tiles:
       - name: Audit & SOX Reporting
         icon: gavel
-        summary: Revenue recognition and controls evidence produced from the same governed tables the firm runs on, audit-ready under Unity Catalog.
+        summary: Revenue recognition and controls evidence produced from the same governed tables the firm runs on, with audit-supporting lineage under Unity Catalog.
       - name: ESG & DE&I Reporting
         icon: share
-        summary: Diversity, pay-equity and sustainability disclosures filed from contracted Gold products.
+        summary: Workforce diversity and pay-equity disclosure analytics as the core, with sustainability reporting an applicable firm-specific variant, filed from contracted Gold products.
   - name: Published Products
     icon: product
     tiles:
@@ -528,7 +548,7 @@ consumers:
         summary: Published, contracted utilization and margin products discoverable in Unity Catalog Domains.
       - name: Sharing Recipients
         icon: share
-        summary: Clients and alliance partners reading live tables with no copy and no egress duplication.
+        summary: Clients and alliance partners reading live tables, avoiding separately maintained extracts where the sharing arrangement supports it.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -617,19 +637,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -778,9 +798,9 @@ agent_usecases:
           - AI/BI
           - Genie One
         stories:
-          - title: MiQ scales campaign optimization with Genie
+          - title: MiQ scales campaign optimization with Genie (adjacent client-marketing example)
             url: https://www.databricks.com/customers/miq
-          - title: Publicis Groupe unifies retail data on Databricks
+          - title: Publicis Groupe unifies retail data on Databricks (adjacent client-marketing example)
             url: https://www.databricks.com/customers/publicis-groupe
       - name: Talent Attrition
         short: Retention
@@ -831,10 +851,10 @@ agent_usecases:
       - name: Revenue Recognition
         short: Finance
         icon: erp
-        summary: Billable hours, rates and contract terms reconciled to the general ledger continuously so the close is faster and audit-ready.
+        summary: Billable hours, rates and contract terms reconciled to the general ledger continuously so the close is faster with audit-supporting lineage.
         problem: Revenue is knitted together each month by hand from time, rate and contract systems that do not agree, consuming finance days and inviting restatements.
         who_benefits: CFO & Finance
-        how_built: Time, rate and DocuSign contract terms are reconciled to the Revenue & GL Mart with Lakeflow, computed once and made SOX-ready under Unity Catalog.
+        how_built: Time, rate and DocuSign contract terms are reconciled to the Revenue & GL Mart with Lakeflow, computed once under finance-approved recognition policies with audit-supporting lineage in Unity Catalog.
         components:
           - Lakeflow
           - Revenue & GL Mart
@@ -898,7 +918,7 @@ citation_index:
     url: https://certinia.com/
   sfdc:
     title: Salesforce Sales Cloud
-    url: https://www.salesforce.com/products/sales-cloud/
+    url: https://www.salesforce.com/sales/
   dynamics:
     title: Microsoft Dynamics 365 Sales
     url: https://www.microsoft.com/en-us/dynamics-365/products/sales

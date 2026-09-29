@@ -44,11 +44,11 @@ sources:
             interval: Continuous (engagement events)
       - name: SeatGeek Enterprise
         icon: market
-        summary: Secondary market listings, transfer activity and dynamic pricing signals.
+        summary: Enterprise ticketing listings, transfer activity and resale demand signals.
         citations:
           - seatgeek
-        category: Secondary Ticketing Marketplace
-        what_it_is: Supplies secondary-market listings, transfer activity and dynamic-pricing signals that reveal true demand.
+        category: Enterprise Ticketing Platform
+        what_it_is: Supplies enterprise ticketing listings, transfer activity and resale demand signals as an illustrative feed.
         who_uses_it: Ticketing, Pricing analysts and Yield management teams.
         data_out:
           batch:
@@ -217,6 +217,26 @@ sources:
               - structured
             volume: GB-scale reference marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'SportsML'
+        icon: zbraces
+        fmt: 'SML'
+        summary: 'IPTC SportsML-G2 XML for exchanging sports schedules, results and statistics.'
+        spec_url: https://iptc.org/standards/sportsml-g2/
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Stats Perform'
+          - 'Genius Sports'
+          - 'Sportradar'
+      - name: 'IPTC Sport Schema'
+        icon: zbraces
+        fmt: 'IPTC'
+        summary: 'IPTC linked-data Sport Schema for modelling sports events and entities.'
+        spec_url: https://iptc.org/standards/sport-schema/
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -255,8 +275,6 @@ cloud_integrations:
       - name: Rights Holder Metadata
         icon: zplug
         summary: Media rights windows and blackout rules from league partners.
-        citations:
-          - stats-perform
         category: Media Rights Metadata
         what_it_is: Supplies media-rights windows and blackout rules from league partners that govern where content may air.
         who_uses_it: Media rights, Broadcast operations and Legal teams.
@@ -288,6 +306,7 @@ pipelines:
         ucs:
           - Sponsorship ROI
           - Dynamic Ticket Pricing
+          - Event Attendance & Revenue
           - Merchandise Forecast
       - name: Ticketing & Pricing
         mark: Model Serving
@@ -306,7 +325,7 @@ pipelines:
             cares: premium and dynamic inventory value across the season.
         ucs:
           - Dynamic Ticket Pricing
-          - Secondary Market Intel
+          - Event Attendance & Revenue
           - Fan Churn Prediction
       - name: Fan Engagement
         mark: CustomerLake
@@ -327,6 +346,7 @@ pipelines:
           - Fan Churn Prediction
           - OTT Personalization
           - Broadcast Highlights
+          - Fan Cross-Sell & Upsell
       - name: Game-Day Ops
         mark: Lakehouse//RT
         summary: Venue managers and medical staff on ingress flow, queue times, player load and incidents, moving crews before a bottleneck becomes a delay.
@@ -345,7 +365,7 @@ pipelines:
         ucs:
           - Crowd Safety Analytics
           - Concessions Optimization
-          - Injury Risk Scoring
+          - Event Attendance & Revenue
   - name: Technical
     icon: code
     tiles:
@@ -390,7 +410,7 @@ pipelines:
         ucs:
           - Dynamic Ticket Pricing
           - Fan Churn Prediction
-          - Injury Risk Scoring
+          - Fan Cross-Sell & Upsell
       - name: App Developers
         mark: Apps
         summary: Ship the Game-Day Command, Pricing Workbench and Fan 360 apps commercial and venue teams work in, next to governed ticketing data.
@@ -419,7 +439,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: League and team dashboards on serverless SQL.
+        summary: League and team dashboards on SQL warehouses.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for attendance and sponsorship questions on game day.
@@ -462,8 +482,6 @@ consumers:
       - name: League Revenue Share
         icon: gavel
         summary: Gate and local revenue reports filed to the league.
-        citations:
-          - stats-perform
       - name: Safety Incident Reports
         icon: share
         summary: Crowd and medical incidents documented from governed logs.
@@ -566,19 +584,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -602,7 +620,7 @@ agent_usecases:
           - How much secondary-market pressure is building against face value?
           - Which events are pricing below the demand curve right now?
           - What is average net effective ticket price by opponent this season?
-      - name: Fan 360 & Engagement Agent
+      - name: Fan Engagement Agent
         icon: genie
         summary: Explore fan profiles, membership churn and engagement stitched across channels.
         feeds:
@@ -727,19 +745,19 @@ agent_usecases:
         stories:
           - title: Pumpjack Dataworks builds a fan data refinery on Databricks
             url: https://www.databricks.com/customers/pumpjack-dataworks
-      - name: Injury Risk Scoring
-        short: Performance
-        icon: iot
-        summary: Load and biomechanical signals flagging elevated injury risk.
-        problem: Player load and biomechanical signals come off wearables in silos, so medical and coaching staff see fatigue and injury risk only after it costs a player or a result.
-        who_benefits: Game-Day Ops
-        how_built: Wearable and tracking feeds land in Lakehouse//RT, are engineered in Feature Store and scored for injury risk in Model Serving, with readiness shown in the Load Management Hub before selection.
+      - name: Event Attendance & Revenue
+        short: Analytics
+        icon: chart
+        summary: Attendance and matchday revenue forecast by event, opponent and promotion.
+        problem: Gate, concessions and ancillary revenue are projected from last season's averages, so a marquee opponent or a slow midweek fixture is staffed and stocked to the wrong number and revenue is left on the table.
+        who_benefits: Ownership & Executive
+        how_built: Ticketing, concessions and event feeds conform on Delta Lake and forecast attendance and revenue per event in Model Serving, with opponent and promotion features in Feature Store read in AI/BI.
         components:
-          - Load Management Hub
-          - Catapult Sports
-          - Lakehouse//RT
-          - Feature Store
+          - Ticketmaster Archtics
+          - VenueNext
           - Model Serving
+          - Feature Store
+          - AI/BI
         stories:
           - title: LaLiga changes the world of sports with real-time streaming data
             url: https://www.databricks.com/customers/laliga
@@ -759,28 +777,28 @@ agent_usecases:
       - name: Crowd Safety Analytics
         short: Operations
         icon: gauge
-        summary: Density and ingress patterns flagged before capacity thresholds.
+        summary: Estimated crowd density and developing hotspots flagged as thresholds are approached or exceeded.
         problem: Ingress crushes, density hot-spots and medical incidents are spotted by eye across dozens of cameras, so crews react after a bottleneck has already become a safety risk.
         who_benefits: Game-Day Ops
-        how_built: Access-control and crowd-density feeds stream into Lakehouse//RT and are scored against density thresholds in Model Serving, alerting crews from Game-Day Command before capacity is breached.
+        how_built: Access-control and crowd-density feeds stream into Lakehouse//RT and are scored against density thresholds in Model Serving, alerting venue incident command from Game-Day Command when thresholds are approached or exceeded.
         components:
           - Game-Day Command
           - Genetec Security Center
           - Lakehouse//RT
           - Model Serving
           - Delta Lake
-      - name: Secondary Market Intel
-        short: Ticketing
-        icon: chart
-        summary: Transfer and resale activity informing primary pricing.
-        problem: Resale and transfer activity on secondary platforms signals true demand, but it arrives disconnected from primary inventory, so pricing and hold decisions are made half-blind.
-        who_benefits: Ticketing & Pricing
-        how_built: Secondary listings and transfer feeds land through Lakeflow, conform on Delta Lake alongside primary inventory and inform the price and hold moves surfaced in the Pricing Workbench.
+      - name: Fan Cross-Sell & Upsell
+        short: Marketing
+        icon: partner
+        summary: Next best offer scored across tickets, concessions, merch and streaming per fan.
+        problem: Ticketing, concessions, merch and streaming each market to fans in isolation, so a season-ticket holder gets a generic email instead of the parking, upgrade or merch offer their history says they will take.
+        who_benefits: Fan Engagement
+        how_built: Fan activity stitched in CustomerLake is scored for next best offer in Model Serving, so cross-sell and upsell across tickets, F&B, merch and OTT trigger per fan from the Fan 360 Console.
         components:
-          - Pricing Workbench
-          - SeatGeek Enterprise
-          - Lakeflow
-          - Delta Lake
+          - Fan 360 Console
+          - Salesforce Marketing Cloud
+          - CustomerLake
+          - Model Serving
           - AI/BI
       - name: OTT Personalization
         short: Streaming

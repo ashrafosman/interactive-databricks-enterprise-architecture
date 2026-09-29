@@ -318,6 +318,43 @@ sources:
               - structured
             volume: GB-scale claims marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'FHIR'
+        icon: zbraces
+        fmt: 'FHIR'
+        summary: 'HL7 Fast Healthcare Interoperability Resources, the modern REST standard for health data.'
+        spec_url: https://www.hl7.org/fhir/overview.html
+        spark_connector: 'dbignite'
+        spark_repo: https://github.com/databrickslabs/dbignite
+        databricks_resource: https://www.databricks.com/solutions/accelerators/fhir
+        source_systems:
+          - 'Epic'
+          - 'Health Gorilla'
+          - 'Redox'
+      - name: 'HL7 v2'
+        icon: zbraces
+        fmt: 'HL7'
+        summary: 'Widely deployed HL7 v2 messaging for clinical events across health systems.'
+        spec_url: https://blog.hl7.org/what_is_hl7_and_introduction_to_products_fhir_cda_v2
+      - name: 'CDA/C-CDA'
+        icon: zbraces
+        fmt: 'CDA'
+        summary: 'HL7 Clinical Document Architecture for structured clinical documents like care summaries.'
+        spec_url: https://www.hl7.org/implement/standards/product_brief.cfm?product_id=492
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Epic'
+          - 'athenahealth'
+          - 'Redox'
+      - name: 'SMART Health Cards'
+        icon: zbraces
+        fmt: 'SHC'
+        summary: 'Verifiable, signed FHIR-based health credentials for portable patient records.'
+        spec_url: https://smarthealth.cards/
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -328,11 +365,11 @@ cloud_integrations:
     tiles:
       - name: Twilio Event Streams
         icon: stream
-        summary: Delivery, open and reply events from SMS and voice outreach streamed in for engagement and adherence analysis.
+        summary: Channel-appropriate delivery, response and interaction events from SMS and voice outreach streamed in for engagement and adherence analysis.
         citations:
           - twilio
         category: Communications Event Stream
-        what_it_is: Streams delivery, open and reply events from SMS and voice outreach for engagement and adherence analysis.
+        what_it_is: Streams channel-appropriate delivery, response and interaction events from SMS and voice outreach for engagement and adherence analysis.
         who_uses_it: Member Growth, member-engagement and lifecycle-marketing teams.
         data_out:
           stream:
@@ -411,7 +448,7 @@ pipelines:
         ucs:
           - Member Engagement
           - Digital Therapeutics
-          - Virtual Visit Ops
+          - Contact Center Sentiment
       - name: Care Management
         mark: Lakehouse//RT
         summary: Care managers running panels of chronic and rising-risk members; RPM nurses triaging device alerts through the day; health coaches driving adherence and behaviour change against the care plan.
@@ -431,7 +468,7 @@ pipelines:
             cares: adherence, behaviour change and coaching.
         ucs:
           - RPM & Alerting
-          - Care Gap Closure
+          - Digital Patient 360
           - Risk Stratification
           - Care Coordination
       - name: Payer Partners
@@ -452,9 +489,9 @@ pipelines:
           - name: Actuarial & VBC
             cares: cost, utilisation and outcomes attribution.
         ucs:
-          - Eligibility & Claims
           - Outcomes Analytics
-          - Care Gap Closure
+          - Digital Patient 360
+          - Risk Stratification
       - name: Product & Data
         mark: Model Serving
         summary: The Chief Product Officer on the digital experience and feature bets; the digital-therapeutics team on programme efficacy and FDA-cleared claims; data science on the models behind coaching, triage and outcomes.
@@ -492,7 +529,7 @@ pipelines:
         ucs:
           - FHIR Interoperability
           - RPM & Alerting
-          - Eligibility & Claims
+          - Digital Patient 360
       - name: Clinical ML
         mark: MLflow
         summary: Deterioration, readmission-risk, adherence and engagement models built from FHIR, device streams and claims; whether they still hold six months on as cohorts and devices shift.
@@ -506,7 +543,7 @@ pipelines:
         ucs:
           - Risk Stratification
           - Digital Therapeutics
-          - Care Gap Closure
+          - Contact Center Sentiment
       - name: App & FHIR Devs
         mark: Apps
         summary: Ship the member app, provider portal and care screens, and the SMART-on-FHIR APIs partners integrate against, hosted next to governed data.
@@ -527,7 +564,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Clinical, engagement and outcomes dashboards against serverless SQL with Unity Catalog permissions enforced end to end.
+        summary: Clinical, engagement and outcomes dashboards against SQL warehouses with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for governed answers on access, adherence and outcomes in the channel the business already works in (Beta).
@@ -567,10 +604,10 @@ consumers:
     tiles:
       - name: HIPAA & HITRUST
         icon: gavel
-        summary: PHI access, audit and de-identification governed in Unity Catalog, with HIPAA and HITRUST evidence produced from the same tables.
+        summary: PHI access, audit and de-identification governed in Unity Catalog, with HIPAA and HITRUST assessment evidence supported from the same tables.
       - name: HEDIS & Star Ratings
         icon: sheet
-        summary: Quality measures, HEDIS and Star Ratings submissions produced from contracted Gold products, not a separate extract.
+        summary: Quality measures, HEDIS and Star Ratings evidence produced from contracted Gold products, with payer partners as the applicable submission owners.
   - name: Published Products
     icon: product
     tiles:
@@ -579,7 +616,7 @@ consumers:
         summary: Published, contracted products discoverable in Unity Catalog Domains and shared over OpenSharing.
       - name: Sharing Recipients
         icon: share
-        summary: Payers, health-system partners and researchers reading live tables with no copy and no egress duplication.
+        summary: Payers, health-system partners and researchers accessing governed products, reducing bespoke exports with copies and transfer behavior dependent on the sharing mode.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -668,19 +705,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -705,7 +742,7 @@ agent_usecases:
           - What is average wait time from request to visit start?
           - Which programmes have the longest queue depth right now?
           - How has virtual visit volume grown month over month?
-      - name: RPM & Deterioration Agent
+      - name: Patient Deterioration Agent
         icon: genie
         summary: Explore device adherence, alert precision and rising risk across the panel.
         feeds:
@@ -813,22 +850,19 @@ agent_usecases:
         stories:
           - title: Flo Health scales personalised experiences on Databricks
             url: https://www.databricks.com/customers/flo-health
-      - name: Care Gap Closure
-        short: Quality
-        icon: gauge
-        summary: Finding open care gaps and quality-measure misses across the panel and driving the outreach and tasks that close them before the measurement window shuts.
-        problem: Care gaps and HEDIS misses hide across claims, clinical and engagement systems; found late, quality scores slip and avoidable cost lands that a timely nudge would have prevented.
-        who_benefits: Care Management
-        how_built: Claims, clinical and engagement data are conformed to certified Gold; gaps are computed on Unity Catalog definitions, scored for outreach priority in Model Serving and pushed to care teams via Health Cloud Sync.
+      - name: Contact Center Sentiment
+        short: Service
+        icon: chat
+        summary: Member call and message transcripts mined for sentiment, effort and churn signals.
+        problem: Member frustration lives in thousands of support calls and chat threads no one can read at scale, so the service failures that drive disengagement and churn surface only in anecdote, long after the member has cooled.
+        who_benefits: Member Growth
+        how_built: Twilio call and message transcripts land on Delta Lake under Unity Catalog and Mosaic AI summarises sentiment, contact drivers and resolution into governed tables surfaced in AI/BI and Genie One.
         components:
-          - Enrollment & Claims
+          - Twilio Comms
+          - Mosaic AI
           - AI/BI
-          - Model Serving
+          - Genie One
           - Unity Catalog
-          - Health Cloud Sync
-        stories:
-          - title: Healthcare and life sciences on the Databricks Platform
-            url: https://www.databricks.com/solutions/industries/healthcare-and-life-sciences
       - name: Risk Stratification
         short: Population
         icon: chart
@@ -862,23 +896,23 @@ agent_usecases:
         stories:
           - title: Building a FHIR-native health data platform on Databricks Lakebase
             url: https://www.databricks.com/blog/building-fhir-native-health-data-platform-databricks-lakebase
-      - name: Eligibility & Claims
-        short: Revenue
-        icon: market
-        summary: Real-time eligibility and benefit checks in the visit path and clean claims out, so members are covered before care and revenue is not lost to rejects.
-        problem: Eligibility is checked late or not at all and claims reject on avoidable errors; members hit surprise bills and the platform chases denials it could have prevented at the point of care.
-        who_benefits: Payer Partners
-        how_built: Change Healthcare and Availity eligibility and claims traffic are conformed in the lakehouse; coverage is verified in the visit path and denial-risk is scored before submission, on pipelines built in Lakeflow.
+      - name: Digital Patient 360
+        short: Unified profile
+        icon: custlake
+        summary: One governed view of the patient across visits, devices, claims and engagement.
+        problem: A patient's history is scattered across telehealth, monitoring, engagement and payer systems, so care teams and product never see the whole person and every experience is built on a partial profile.
+        who_benefits: Care Management
+        how_built: Visit, device, claims and engagement data unify in CustomerLake under Unity Catalog and are served on Lakebase in the Member 360 Hub, so one governed patient profile powers care, coaching and personalisation.
         components:
-          - Change Healthcare
-          - Availity Gateway
-          - Enrollment & Claims
-          - Lakeflow
-          - AI/BI
+          - Member 360 Hub
+          - CustomerLake
+          - Epic FHIR APIs
+          - Lakebase
+          - Unity Catalog
       - name: Digital Therapeutics
         short: DTx
         icon: apps
-        summary: Powering evidence-based digital coaching for chronic conditions and proving programme efficacy for cleared claims and payer contracts.
+        summary: Powering evidence-based digital coaching for chronic conditions and supporting programme evaluation and evidence preparation for applicable claims and payer contracts.
         problem: Digital therapeutics live or die on efficacy evidence, but coaching signals, device readings and outcomes sit apart, so personalisation is coarse and the evidence base is slow to build.
         who_benefits: Product & Data
         how_built: Device, engagement and clinical data are aggregated into a member view; coaching and efficacy models tracked in MLflow score through Model Serving and Feature Store into the programme in the Member 360 Hub.
@@ -916,7 +950,7 @@ agent_usecases:
         summary: Coordinating hand-offs across virtual visits, RPM, coaching and the EHR so the member has one care plan, not a set of disconnected touchpoints.
         problem: A member's care is split across telehealth, monitoring, coaching and their provider's EHR; without a shared plan the touchpoints contradict each other and work falls between the teams.
         who_benefits: Clinical Ops
-        how_built: A unified member and care-plan view is served on Lakebase; agents draft hand-offs and updates against governed tools with Agent Bricks and AI Functions and write back to the EHR and Health Cloud.
+        how_built: A unified member and care-plan view is served on Lakebase; agents draft hand-offs and proposed updates against governed tools with Agent Bricks and AI Functions, and the care team accepts changes before active-plan updates write back to the EHR and Health Cloud.
         components:
           - Care Command Center
           - Agent Bricks

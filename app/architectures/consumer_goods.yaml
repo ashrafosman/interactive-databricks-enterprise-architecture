@@ -1,5 +1,5 @@
 name: Consumer Goods
-description: 'CPG manufacturing and distribution: demand planning, trade promotion, retail execution, and supply chain across brands and categories.'
+description: 'For a CPG manufacturer: demand planning, trade promotion, retail execution and supply chain across brands and categories, from plant to shelf.'
 sources:
   - name: ERP & Manufacturing
     icon: erp
@@ -241,6 +241,36 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'EANCOM'
+        icon: zbraces
+        fmt: 'EANC'
+        summary: 'GS1 EDIFACT subset for orders, dispatch advices and invoices between CPG and retail.'
+        spec_url: https://www.gs1.org/standards/edi
+      - name: 'GS1 XML'
+        icon: zbraces
+        fmt: 'GS1X'
+        summary: 'GS1 XML business messages for order-to-cash and master-data exchange.'
+        spec_url: https://www.gs1.org/standards/edi-xml
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'SAP'
+          - '1WorldSync'
+          - 'GS1 GDSN'
+      - name: 'EPCIS'
+        icon: zbraces
+        fmt: 'EPC'
+        summary: 'GS1 event standard for supply-chain visibility and item traceability.'
+        spec_url: https://www.gs1.org/standards/epcis
+      - name: 'GDSN'
+        icon: zbraces
+        fmt: 'GDSN'
+        summary: 'Global Data Synchronisation Network catalogue messages for trusted product master data.'
+        spec_url: https://www.gs1.org/services/gdsn
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -315,7 +345,8 @@ pipelines:
         ucs:
           - Price Pack Architecture
           - New Product Intro
-          - Retail Media
+          - Retail Media Networks
+          - Identity Resolution & CDP
       - name: Sales & Accounts
         mark: AI/BI
         summary: Joint business plans, distribution and perfect store execution, judged on market share, on-shelf availability and distribution points.
@@ -332,9 +363,9 @@ pipelines:
           - name: Revenue Management
             cares: chargeback recovery and net revenue by customer.
         ucs:
-          - Perfect Store
-          - Chargeback Recovery
           - Trade Promotion ROI
+          - Retail Media Networks
+          - Employee Knowledge Agent
       - name: Demand Planning
         mark: Model Serving
         summary: Statistical forecasts, consensus and supply alignment, tracked on forecast accuracy, bias and consensus attainment by SKU-region.
@@ -354,6 +385,7 @@ pipelines:
           - Demand Forecasting
           - Inventory Optimization
           - New Product Intro
+          - Joint Demand Planning
       - name: Trade Marketing
         mark: Apps
         summary: Promo design, accrual management and post-event analytics, measured on promo lift, incrementality and trade-spend ROI.
@@ -371,8 +403,8 @@ pipelines:
             cares: incrementality and trade-spend ROI across the plan.
         ucs:
           - Trade Promotion ROI
-          - Retail Media
-          - Price Pack Architecture
+          - Retail Media Networks
+          - Shopper Segmentation
       - name: Supply Chain
         mark: Lakehouse//RT
         summary: Service levels, inventory and production scheduling, run on OTIF, case fill rate and days of inventory against demand across DCs and SKUs.
@@ -389,9 +421,9 @@ pipelines:
           - name: Sustainability Ops
             cares: packaging, sourcing and emissions by brand and site.
         ucs:
-          - Supply Allocation
           - Inventory Optimization
-          - Sustainability Tracking
+          - Joint Demand Planning
+          - Demand Forecasting
   - name: Technical
     icon: code
     tiles:
@@ -415,7 +447,7 @@ pipelines:
         ucs:
           - Demand Forecasting
           - Trade Promotion ROI
-          - Chargeback Recovery
+          - Identity Resolution & CDP
       - name: Data Scientists
         mark: MLflow
         summary: Demand-forecast, promo-lift and price-pack elasticity models, and whether they still hold across a new innovation launch and channel shift.
@@ -437,6 +469,7 @@ pipelines:
           - Demand Forecasting
           - Price Pack Architecture
           - Inventory Optimization
+          - Shopper Segmentation
       - name: App Developers
         mark: Apps
         summary: Ship the perfect store scorecard, consensus forecast, promo ROI analyzer and supply command apps sales and planning work in, next to governed SKU data.
@@ -455,8 +488,8 @@ pipelines:
           - name: Agent Builders
             cares: agents that draft promo and allocation moves against governed tools.
         ucs:
-          - Perfect Store
-          - Supply Allocation
+          - Employee Knowledge Agent
+          - Retail Media Networks
           - Trade Promotion ROI
 consumers:
   - name: BI & Productivity
@@ -465,7 +498,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Category and finance dashboards on serverless SQL.
+        summary: Category and finance dashboards on SQL warehouses.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for share and promo questions.
@@ -477,7 +510,7 @@ consumers:
     tiles:
       - name: EDI 852/867
         icon: api
-        summary: Store-level inventory and consumption to retailers.
+        summary: Retailer store-level inventory and consumption inbound, with derived insights shared back.
         citations:
           - nielseniq
       - name: Retailer Portals
@@ -513,7 +546,7 @@ consumers:
     tiles:
       - name: Nutrition Labeling
         icon: gavel
-        summary: Label compliance tracked from recipe to package.
+        summary: Label compliance tracked from recipe to package for food and beverage variants.
       - name: ESG Packaging Reports
         icon: share
         summary: Recycled content disclosures to retailers.
@@ -536,11 +569,11 @@ consumers:
       - name: Consensus Forecast
         icon: sheet
         short: Demand planning
-        summary: Statistical, sales and finance inputs merged into one plan.
+        summary: Statistical, sales, finance and external o9 forecast inputs merged into one plan.
       - name: Promo ROI Analyzer
         icon: chart
         short: Trade spend
-        summary: Lift, incrementality and payback by event and retailer.
+        summary: Lift, estimated incrementality and payback by event and retailer.
       - name: Supply Command
         icon: gauge
         short: Service levels
@@ -595,7 +628,7 @@ consumers:
           - On-shelf availability
           - Distribution voids
           - Chargeback recovery
-          - Retail-media ROAS
+          - Attributed retail-media ROAS
         teams:
           - Sales & Accounts
           - Trade Marketing
@@ -614,26 +647,26 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
     span: 3
     cols: 2
     tiles:
-      - name: Share & Category Agent
+      - name: Category Growth Agent
         icon: genie
         summary: Ask about market share, distribution and category performance in plain language.
         feeds:
@@ -651,7 +684,7 @@ agent_usecases:
           - How does consumption compare to shipments by market?
           - Which price-pack tiers are trading up or down?
           - Where is the category growing fastest by geography?
-      - name: Trade Promotion Agent
+      - name: Trade Spend Agent
         icon: genie
         summary: Explore promo lift, incrementality and trade-spend ROI by event and retailer.
         feeds:
@@ -729,10 +762,10 @@ agent_usecases:
       - name: Trade Promotion ROI
         short: Marketing
         icon: partner
-        summary: Promo events evaluated on true incrementality.
+        summary: Promo events evaluated on estimated incrementality.
         problem: Trade spend is the second-largest line on the P&L, yet promo results are judged on gross lift, so teams keep funding events that simply pulled forward volume they would have sold anyway.
         who_benefits: Trade Marketing
-        how_built: Promo calendars, shipments and syndicated scan are conformed on Delta Lake and decomposed with Model Serving, so the Promo ROI Analyzer shows true incrementality on certified AI/BI views.
+        how_built: Promo calendars, shipments and syndicated scan are conformed on Delta Lake and decomposed with Model Serving, so the Promo ROI Analyzer shows estimated incrementality against a modeled baseline on certified AI/BI views.
         components:
           - Promo ROI Analyzer
           - SAP TPM
@@ -744,42 +777,32 @@ agent_usecases:
             url: https://www.databricks.com/blog/collaboration-advantage-how-modern-retailers-and-cpg-brands-win-together
           - title: Mars Wrigley scales global insights
             url: https://www.databricks.com/customers/mars-wrigley
-      - name: Perfect Store
-        short: Sales
+      - name: Identity Resolution & CDP
+        short: Consumer data
         icon: custlake
-        summary: Store-level execution scored and actioned.
-        problem: Retail execution lives in field-rep screenshots and paper audits, so on-shelf availability, planogram compliance and promo presence are only known weeks later, once the sale is already lost.
-        who_benefits: Sales & Accounts
-        how_built: Visit, audit and POS data land through Salesforce Consumer Goods, are scored with AI Functions and Model Serving, and surface store fixes in the Perfect Store Scorecard app for reps.
+        summary: First-party consumer identities unified into one governed profile.
+        problem: D2C sites, loyalty programs and household panels each hold a slice of the consumer, so the same person is counted many times and the brand never sees a single, consented view to activate on.
+        who_benefits: Brand & Category
+        how_built: First-party D2C and loyalty records with consent history are resolved on Delta Lake under Unity Catalog into governed Data Products, giving one consented consumer profile brand teams activate to authorized destinations; Circana household panels enrich segments at household level rather than proving identity.
         components:
-          - Perfect Store Scorecard
+          - Delta Lake
+          - Unity Catalog
+          - Data Products
+          - Circana Liquid Data
           - Salesforce Consumer Goods
-          - AI Functions
-          - Model Serving
-          - Apps
-        stories:
-          - title: Grupo Bimbo delivers insights with Agent Bricks
-            url: https://www.databricks.com/dataaisummit/session/beyond-dashboards-how-grupo-bimbo-delivers-insights-databricks
-          - title: Mars Wrigley scales global insights
-            url: https://www.databricks.com/customers/mars-wrigley
-      - name: Supply Allocation
-        short: Operations
-        icon: stream
-        summary: Finite supply allocated to highest-value markets.
-        problem: When a SKU goes short, allocation is decided in a hurried call and the biggest customer wins, so scarce stock rarely lands where service, margin and strategic accounts matter most.
-        who_benefits: Supply Chain
-        how_built: Inventory, orders and demand feed Lakehouse//RT and optimization models in Model Serving, and the Supply Command app releases allocation to priority banners with state held in Lakebase.
+      - name: Shopper Segmentation
+        short: Marketing
+        icon: people
+        summary: Households clustered by behaviour to target activation and innovation.
+        problem: Brands market to broad demographics because behavioural segments live in agency decks and one-off studies, so activation, assortment and innovation all aim at an average shopper who does not exist.
+        who_benefits: Trade Marketing
+        how_built: Household-panel and consumption data from Circana Liquid Data and NielsenIQ Connect feed clustering features in Feature Store scored in Model Serving, so governed household segments surface in AI/BI for permitted audience activation.
         components:
-          - Supply Command
-          - Kinaxis Maestro
-          - Lakehouse//RT
+          - Circana Liquid Data
+          - NielsenIQ Connect
+          - Feature Store
           - Model Serving
-          - Lakebase
-        stories:
-          - title: Mondelēz facilitates model experimentation at enterprise scale
-            url: https://www.databricks.com/customers/mondelez
-          - title: Unilever transforms with AI
-            url: https://www.databricks.com/customers/unilever
+          - AI/BI
       - name: Price Pack Architecture
         short: Strategy
         icon: product
@@ -796,13 +819,13 @@ agent_usecases:
         stories:
           - title: Mondelēz facilitates model experimentation at enterprise scale
             url: https://www.databricks.com/customers/mondelez
-      - name: Retail Media
+      - name: Retail Media Networks
         short: Digital
         icon: market
         summary: Retail media spend tied to sell-through outcomes.
         problem: Retail media budgets grow every year, but spend on retailer platforms is reported in each retailer's walled garden, so nobody can tie an impression to real sell-through and true return.
         who_benefits: Trade Marketing
-        how_built: Retail media data from Amazon Vendor Central and Instacart Ads & Data is conformed on Delta Lake and joined to sell-through, so ROAS and incremental sales surface in AI/BI and Model Serving.
+        how_built: Advertising measurement data from Instacart Ads & Data is conformed on Delta Lake and joined to sell-through, so attributed ROAS and estimated incremental sales are distinguished in AI/BI and Model Serving, with Amazon Vendor Central supplying purchase-order and traffic context.
         components:
           - Instacart Ads & Data
           - Amazon Vendor Central
@@ -814,18 +837,18 @@ agent_usecases:
             url: https://www.databricks.com/blog/collaboration-advantage-how-modern-retailers-and-cpg-brands-win-together
           - title: Heineken brews better decisions with data and AI
             url: https://www.databricks.com/customers/heineken-international
-      - name: Chargeback Recovery
-        short: Finance
-        icon: erp
-        summary: Retailer deductions reconciled to shipment proof.
-        problem: Retailers deduct for shortages, pricing and promo claims faster than teams can check them, so valid disputes expire and invalid deductions are written off every year without proof.
-        who_benefits: Sales & Accounts
-        how_built: Deductions from Vistex GTM and SAP TPM are matched to shipment and promo proof in SAP IBP / S/4 with AI Functions on Delta Lake, so recoverable claims are flagged with evidence.
+      - name: Joint Demand Planning
+        short: Collaboration
+        icon: share
+        summary: Retailer POS shared into one collaborative forecast through governed access.
+        problem: Retailers hold the real sell-out signal but share it as late spreadsheets, so the manufacturer plans on shipments that lag true demand and both sides carry the cost of the gap.
+        who_benefits: Demand Planning
+        how_built: Retailer POS is shared through Delta Sharing into the Consensus Forecast, so joint forecasts run on governed sell-out with governed access that reduces bespoke extracts, consuming o9 Demand Planning forecast outputs rather than porting its models.
         components:
-          - Vistex GTM
-          - SAP TPM
-          - SAP IBP / S/4
-          - AI Functions
+          - Consensus Forecast
+          - Delta Sharing
+          - o9 Demand Planning
+          - Model Serving
           - Delta Lake
       - name: New Product Intro
         short: Innovation
@@ -840,22 +863,22 @@ agent_usecases:
           - AI/BI
           - Genie One
           - Delta Lake
-      - name: Sustainability Tracking
-        short: ESG
-        icon: gavel
-        summary: Packaging and sourcing metrics by brand.
-        problem: ESG commitments are made at the brand level, but packaging, recycled content and sourcing data sit in supplier emails and PDFs, so disclosures are assembled by hand and hard to defend.
-        who_benefits: Supply Chain
-        how_built: Sourcing and packaging data from SAP IBP / S/4 are conformed under Unity Catalog into governed Data Products, so recycled-content and emissions metrics report by brand in AI/BI.
+      - name: Employee Knowledge Agent
+        short: Productivity
+        icon: genie
+        summary: An internal assistant answering brand, promo and supply questions from governed data.
+        problem: Analysts and field reps lose hours hunting across syndicated reports, promo systems and planning tools for answers, and the knowledge walks out the door when an expert leaves.
+        who_benefits: Sales & Accounts
+        how_built: Mosaic AI agents grounded in Genie answer natural-language questions over governed share, promo and supply Data Products, so authorized employees get a cited answer without waiting on an analyst.
         components:
-          - SAP IBP / S/4
+          - Mosaic AI
+          - Genie
           - Unity Catalog
-          - AI/BI
-          - Delta Lake
           - Data Products
+          - Databricks Apps
         stories:
-          - title: Mondelēz facilitates model experimentation at enterprise scale
-            url: https://www.databricks.com/customers/mondelez
+          - title: Grupo Bimbo delivers insights with Agent Bricks
+            url: https://www.databricks.com/dataaisummit/session/beyond-dashboards-how-grupo-bimbo-delivers-insights-databricks
       - name: Inventory Optimization
         short: Finance
         icon: chart

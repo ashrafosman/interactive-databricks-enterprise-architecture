@@ -331,6 +331,26 @@ sources:
               - structured
             volume: TB-scale historical marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'ACORD P&C XML'
+        icon: zbraces
+        fmt: 'ACORD'
+        summary: 'ACORD Property & Casualty XML standards for policy, claims and billing data.'
+        spec_url: https://www.acord.org/standards-architecture/acord-data-standards
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Guidewire'
+          - 'Duck Creek'
+          - 'Majesco'
+      - name: 'ACORD AL3'
+        icon: zbraces
+        fmt: 'AL3'
+        summary: 'Legacy ACORD flat-file standard for agency-carrier P&C data interchange.'
+        spec_url: https://www.acord.org/standards-architecture/acord-data-standards
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -432,10 +452,10 @@ pipelines:
         mark: Model Serving
         summary: Pricing actuaries setting rate plans against ISO loss costs and the filed rate; reserving actuaries booking IBNR and case reserves; the telematics team turning driving behaviour into usage-based rate.
         uses:
-          - - Pricing Workbench
+          - - Earnix Rating
             - Rate adequacy and loss-cost trend before a rate change is filed.
           - - Model Serving
-            - GLM and willingness-to-pay models scored in the quote path.
+            - GLM and approved rating models scored in the quote path; exploratory willingness-to-pay analysis kept separate until filed and permitted.
           - - MLflow
             - Every rate and reserving model versioned for the filing and audit.
         sub:
@@ -448,7 +468,7 @@ pipelines:
         ucs:
           - Pricing & Rating
           - Loss Reserving
-          - Telematics & UBI
+          - Catastrophe Risk
       - name: Distribution & Agency
         mark: AI/BI
         summary: The chief distribution officer on agency production and mix; agency managers on quote-to-bind, retention and loss ratio by agent; the direct and digital team on quote conversion and customer lifetime value.
@@ -468,8 +488,8 @@ pipelines:
             cares: quote conversion and customer lifetime value.
         ucs:
           - Customer 360
-          - Underwriting Triage
-          - Pricing & Rating
+          - Distribution & Producer Analytics
+          - Contact-Center AI
       - name: Finance & Reinsurance
         mark: AI/BI
         summary: The CFO on combined ratio, capital and investor reporting; the ceded-reinsurance team on treaty recoveries and bordereaux; investor reporting on statutory, IFRS 17 and solvency results.
@@ -488,7 +508,6 @@ pipelines:
           - name: Investor Reporting
             cares: statutory, IFRS 17 and solvency results.
         ucs:
-          - Reinsurance Analytics
           - Loss Reserving
           - Catastrophe Risk
   - name: Technical
@@ -519,7 +538,7 @@ pipelines:
         summary: GLM and gradient-boosted pricing models built in the lakehouse and pushed into the Earnix rating engine, tested against ISO loss costs and the filed rate plan before a rate change is bound.
         uses:
           - - Model Serving
-            - Rating and willingness-to-pay models scored in the quote path.
+            - Rating models scored in the quote path using approved, jurisdiction-permitted factors, with willingness-to-pay analysis kept exploratory.
           - - MLflow
             - Every rate model versioned against the filed plan for audit.
           - - AI/BI
@@ -531,7 +550,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Underwriting, claims and finance dashboards against serverless SQL with Unity Catalog permissions enforced end to end.
+        summary: Underwriting, claims and finance dashboards against SQL warehouses with Unity Catalog permissions enforced end to end.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for governed answers on loss ratio, reserves and cat exposure in the channel the business already works in (Beta).
@@ -567,7 +586,7 @@ consumers:
           - guidewire-cc
       - name: Rating Engine Sync
         icon: market
-        summary: Model outputs and price-optimisation factors synced into the rating engine behind the quote.
+        summary: Approved, jurisdiction-permitted rating factors synced into the rating engine behind the quote, separate from exploratory price-optimisation analysis.
         citations:
           - earnix
   - name: Regulatory & Reporting
@@ -587,7 +606,7 @@ consumers:
         summary: Published, contracted products discoverable in Unity Catalog Domains and shared over OpenSharing.
       - name: Sharing Recipients
         icon: share
-        summary: Reinsurers, MGAs and audit partners reading live tables with no copy and no egress duplication.
+        summary: Reinsurers, MGAs and audit partners reading governed live tables that reduce routine file duplication.
   - name: Databricks Apps
     icon: apps
     tiles:
@@ -638,7 +657,7 @@ consumers:
           - SIU & Fraud
       - name: Catastrophe Exposure & PML
         icon: aibi
-        summary: Modelled PML, accumulation and ceded recoveries by peril and treaty.
+        summary: Modelled PML, accumulation, modeled treaty recoveries and booked outstanding recoverables by peril and treaty.
         kpis:
           - Gross PML
           - Net PML
@@ -676,19 +695,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -713,7 +732,7 @@ agent_usecases:
           - How has written premium grown by product versus last year?
           - Which agencies are binding business off our stated appetite?
           - What is the combined ratio trend by line over the last four quarters?
-      - name: Claims & Fraud Agent
+      - name: Claims & SIU Agent
         icon: genie
         summary: Explore cycle time, severity, leakage and SIU referrals across the claims book.
         feeds:
@@ -733,7 +752,7 @@ agent_usecases:
           - Which claims have ClaimSearch links to prior losses on other policies?
       - name: Catastrophe & Reinsurance Agent
         icon: genie
-        summary: Ask about exposure, PML and ceded recoveries by peril and treaty.
+        summary: Ask about exposure, PML and ceded recoveries by peril and treaty, distinguishing modeled treaty recoveries from booked outstanding recoverables.
         feeds:
           - Moody's RMS
           - Verisk Touchstone
@@ -749,7 +768,7 @@ agent_usecases:
           - How much ceded recovery is outstanding on the last cat event?
           - What is our net position after the current reinsurance program?
           - Where has exposure grown fastest against appetite this year?
-      - name: Distribution & Retention Agent
+      - name: Distribution & Agency Agent
         icon: genie
         summary: Answer agency production, quote-to-bind and retention questions across channels.
         feeds:
@@ -775,7 +794,7 @@ agent_usecases:
       - name: Claims Automation
         short: Claims
         icon: gauge
-        summary: Straight-through processing of low-complexity claims with severity scoring and next-best-action, so adjusters spend their time on the claims that need them.
+        summary: Straight-through intake, triage and assignment for eligible low-complexity claims with severity scoring, next-best-action and reserve recommendations, so adjusters spend their time on the claims that need them.
         problem: Claims arrive as FNOL calls, photos, PDFs and telematics across different systems; triaged by hand, simple claims wait behind complex ones and leakage and cycle time run away.
         who_benefits: Claims Leadership
         how_built: Policy, claim and telematics feeds land through Lakeflow; severity is scored in Model Serving and documents parsed with Document Intelligence, and the Claims Command Center on Lakebase drives assignment and reserves.
@@ -828,7 +847,7 @@ agent_usecases:
         summary: Moving from static annual rate tables to segmented, model-driven rate served into the quote, tested against loss costs and the filed plan.
         problem: Static rate plans cannot express true risk, so rate is inadequate on some segments and uncompetitive on others, and every change waits on a slow filing cycle.
         who_benefits: Actuarial & Pricing
-        how_built: ISO loss costs and internal experience are conformed in the lakehouse; GLM and gradient-boosted models tracked in MLflow score through Model Serving into the Earnix rating engine, on definitions certified in Unity Catalog.
+        how_built: ISO loss costs and internal experience are conformed in the lakehouse; GLM and gradient-boosted models tracked in MLflow score through Model Serving into the Earnix rating engine using only approved, jurisdiction-permitted factors, on definitions certified in Unity Catalog.
         components:
           - Earnix Rating
           - Model Serving
@@ -854,22 +873,19 @@ agent_usecases:
         stories:
           - title: Catastrophe modeling reference architecture for insurance
             url: https://www.databricks.com/resources/architectures/catastrophe-modeling-reference-architecture-for-insurance
-      - name: Telematics & UBI
-        short: Usage-based
-        icon: stream
-        summary: Turning streaming driving behaviour into usage-based rate and claims reconstruction, priced on how a policyholder actually drives.
-        problem: Usage-based programmes generate high-frequency trip data that batch pipelines cannot land cleanly or fast enough, so pricing signals arrive late and trip quality is unproven.
-        who_benefits: Actuarial & Pricing
-        how_built: Telematics trips stream into Lakehouse//RT with quality checks; behaviour features are defined once in Feature Store and scored through Model Serving for UBI rate, on pipelines built in Lakeflow.
+      - name: Contact-Center AI
+        short: Service
+        icon: chat
+        summary: FNOL call summarization, agent assist and self-service deflection across the policyholder contact center.
+        problem: Contact-center staff switch between policy, billing and claims screens to take a first notice of loss or answer a policyholder, so handle time is long, wrap-up is manual and callers repeat themselves.
+        who_benefits: Claims Leadership
+        how_built: Call transcripts and case data conform under Unity Catalog, Mosaic AI agents built with Agent Bricks summarize calls and draft next steps against governed policy and claim data, and deflection is served through Databricks Apps.
         components:
-          - CMT Telematics
-          - Lakehouse//RT
-          - Model Serving
-          - Feature Store
-          - Lakeflow
-        stories:
-          - title: Smart Claims ingests telematics for usage-based insurance
-            url: https://www.databricks.com/resources/demos/tutorials/lakehouse-platform/dbdemos-fsi-smart-claims
+          - Snapsheet Claims
+          - Salesforce FSC
+          - Mosaic AI
+          - Agent Bricks
+          - AI/BI
       - name: Loss Reserving
         short: Actuarial
         icon: sheet
@@ -919,24 +935,19 @@ agent_usecases:
             url: https://www.databricks.com/customers/storebrand
           - title: Nationwide transforms data into member value
             url: https://www.databricks.com/customers/nationwide
-      - name: Reinsurance Analytics
-        short: Ceded risk
+      - name: Distribution & Producer Analytics
+        short: Distribution
         icon: share
-        summary: Measuring ceded structure, treaty recoveries and net PML, and sharing exposure with reinsurers on live tables rather than spreadsheets.
-        problem: Ceded exposure and treaty recoveries live in spreadsheets and file exchanges, so net position is unclear at renewal and recoveries are chased manually after the loss.
-        who_benefits: Finance & Reinsurance
-        how_built: Gross exposure, cat output and recoveries are conformed in the lakehouse against the Actuarial & Reserving marts; net PML and treaty economics are analysed in AI/BI on Unity Catalog definitions and shared to reinsurers over OpenSharing.
+        summary: Agency and producer performance, quote-to-bind and appetite adherence measured across every channel.
+        problem: Production, quote-to-bind and loss ratio by agent live in agency-management and CRM silos, so growing agencies writing off-appetite business are spotted late and channel economics are guesswork.
+        who_benefits: Distribution & Agency
+        how_built: Applied Epic and Vertafore book-of-business feeds conform with Salesforce FSC on the lakehouse under Unity Catalog, and producer production, retention and appetite adherence are scored in Model Serving and analysed in AI/BI.
         components:
-          - Actuarial & Reserving
-          - OpenSharing
+          - Applied Epic
+          - Vertafore AMS360
+          - Salesforce FSC
+          - Model Serving
           - AI/BI
-          - Unity Catalog
-          - Moody's RMS
-        stories:
-          - title: Milliman powers actuarial and risk analytics on Databricks
-            url: https://www.databricks.com/customers/milliman
-          - title: Design patterns for batch processing in financial services
-            url: https://www.databricks.com/blog/2023/01/09/design-patterns-batch-processing-financial-services.html
 medallion:
   Bronze:
     short: Raw policy, claims, telematics

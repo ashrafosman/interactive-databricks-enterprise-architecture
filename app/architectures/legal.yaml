@@ -212,6 +212,31 @@ sources:
               - structured
             volume: GB-scale contract marts
             interval: Queried on demand (federated)
+  - name: Data Formats
+    icon: zbraces
+    tiles:
+      - name: 'LEDES'
+        icon: zbraces
+        fmt: 'LEDES'
+        summary: 'Legal Electronic Data Exchange Standard for e-billing between firms and clients.'
+        spec_url: https://ledes.org/
+      - name: 'LegalDocML'
+        icon: zbraces
+        fmt: 'LDML'
+        summary: 'OASIS Akoma Ntoso XML for legislative, judicial and legal documents.'
+        spec_url: https://www.oasis-open.org/committees/legaldocml/
+        spark_connector: 'spark-xml'
+        spark_repo: https://github.com/databricks/spark-xml
+        databricks_resource: https://docs.databricks.com/aws/en/query/formats/xml
+        source_systems:
+          - 'Tyler Technologies'
+          - 'iManage'
+          - 'NetDocuments'
+      - name: 'LegalXML ECF'
+        icon: zbraces
+        fmt: 'ECF'
+        summary: 'OASIS Electronic Court Filing standard for exchanging court documents.'
+        spec_url: https://docs.oasis-open.org/legalxml-courtfiling/ecf/v5.0/ecf-v5.0.html
 cloud_integrations:
   - name: Cloud ETL
     icon: etl
@@ -270,7 +295,7 @@ pipelines:
     tiles:
       - name: Managing Partner & GC
         mark: Genie One
-        summary: The managing partner on realization rate and leverage; the general counsel on outside-counsel spend against budget and matter profitability by practice group.
+        summary: The managing partner on firm realization, leverage and matter profitability by practice group; the general counsel on outside-counsel invoices, accruals and budgets.
         uses:
           - - Genie One
             - Ask firm-wide realization this quarter without waiting on finance.
@@ -426,7 +451,7 @@ consumers:
     tiles:
       - name: Tableau / Power BI
         icon: chart
-        summary: Practice and finance dashboards on serverless SQL with Unity Catalog permissions.
+        summary: Practice and finance dashboards on SQL warehouses with Unity Catalog permissions.
       - name: Microsoft Teams
         icon: chat
         summary: Genie in Teams for governed answers and matter alerts in the channel teams already work in (Beta).
@@ -462,7 +487,7 @@ consumers:
         summary: Matter status and spend dashboards exchanged with in-house clients.
       - name: Court E-filing
         icon: api
-        summary: Production sets and certificates of service filed through e-filing gateways.
+        summary: Production sets and certificates of service filed through authorized e-filing gateways, with PACER used only as docket-retrieval context.
         citations:
           - pacer
   - name: Regulatory & Reporting
@@ -484,14 +509,14 @@ consumers:
         summary: Published, contracted products discoverable in Unity Catalog Domains and shared over OpenSharing.
       - name: Sharing Recipients
         icon: share
-        summary: Corporate clients and co-counsel reading live tables with no copy and no egress duplication.
+        summary: Corporate clients and co-counsel reading governed live tables that reduce routine file exports.
   - name: Databricks Apps
     icon: apps
     tiles:
       - name: Matter Profitability Console
         icon: market
         short: Practice economics
-        summary: Budget, WIP and realization by matter phase and timekeeper before write-offs accumulate.
+        summary: Firm budget, WIP and realization by matter phase and timekeeper, with role-scoped corporate outside-counsel invoice, accrual and budget views.
       - name: Review Command Centre
         icon: gauge
         short: E-discovery ops
@@ -573,19 +598,19 @@ consumers:
           - Govern
         related:
           - Agent Bricks
-          - Unity AI Gateway
+          - Unity Gateway
       - name: Claude Code
         icon: code
         short: 3rd-party harness
-        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity AI Gateway.
+        summary: Anthropic's coding harness working against the platform through MCP, with spend, routing and policy governed by Unity Gateway.
       - name: OpenAI Codex
         icon: code
         short: 3rd-party harness
-        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity AI Gateway rather than trusted by configuration.
+        summary: OpenAI's coding harness connected over MCP, governed at runtime by Unity Gateway rather than trusted by configuration.
       - name: Any MCP Harness
         icon: mcp
         short: Cursor, IDEs, frameworks
-        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity AI Gateway registry.
+        summary: Cursor and other IDE agents, LangGraph and CrewAI frameworks, and any other harness that speaks MCP, admitted and scoped in the Unity Gateway registry.
 agent_usecases:
   - name: Genie Agents
     icon: genie
@@ -594,7 +619,7 @@ agent_usecases:
     tiles:
       - name: Matter Profitability Agent
         icon: genie
-        summary: Ask about realization, leverage and matter margin across the firm in plain language.
+        summary: Ask about firm realization, leverage and matter margin, and corporate outside-counsel invoices, accruals and budgets, with role-scoped views.
         feeds:
           - Elite 3E
           - Aderant Expert
@@ -732,6 +757,8 @@ agent_usecases:
             url: https://www.databricks.com/blog/cracking-complex-contracts-genai-azure-databricks
           - title: EY-Parthenon turns unstructured M&A data into strategy
             url: https://www.databricks.com/customers/ey-parthenon
+          - title: JLL turns lease data into governed, queryable knowledge
+            url: https://www.databricks.com/customers/jll/dealsumm
       - name: Conflicts Screening
         short: Ethics
         icon: people
@@ -771,9 +798,6 @@ agent_usecases:
           - Unity Catalog
           - AI/BI
           - Genie One
-        stories:
-          - title: JLL turns lease data into governed, queryable knowledge
-            url: https://www.databricks.com/customers/jll/dealsumm
       - name: Docket Monitoring
         short: Litigation
         icon: api
@@ -790,10 +814,10 @@ agent_usecases:
       - name: Records Retention
         short: Compliance
         icon: db
-        summary: Legal holds and disposition executed from governed retention policies.
+        summary: Legal holds and disposition executed through authorized records systems from governed retention policies, with hold precedence.
         problem: Legal holds and disposition depend on retention rules scattered across the DMS and records tools, so holds are missed and documents kept long past policy, raising cost and discovery risk.
         who_benefits: Compliance
-        how_built: Retention labels from Microsoft Purview conform under Unity Catalog, so holds and disposition execute from one governed policy with auditable lineage from rule to document.
+        how_built: Retention labels from Microsoft Purview conform under Unity Catalog, so approved holds and disposition execute in authorized records systems with legal-hold precedence over disposition and auditable lineage from rule to document; Unity Catalog governs analytical policy and evidence rather than universal DMS control.
         components:
           - Microsoft Purview
           - Unity Catalog
